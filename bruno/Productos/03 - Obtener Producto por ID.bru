@@ -1,0 +1,21 @@
+meta {
+  name: 03 - Obtener Producto por ID
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/productos/{{idProducto}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Usa la variable `idProducto`, seteada automaticamente por
+  "01 - Crear Producto" al correrla. Si no la corriste antes, reemplaza
+  {{idProducto}} por un UUID valido a mano.
+}

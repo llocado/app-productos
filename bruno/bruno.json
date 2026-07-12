@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "app-productos",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

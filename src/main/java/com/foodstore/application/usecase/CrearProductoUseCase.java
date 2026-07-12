@@ -1,7 +1,5 @@
-package com.foodstore.application.service;
+package com.foodstore.application.usecase;
 
-import com.foodstore.application.port.in.CrearProductoCommand;
-import com.foodstore.application.port.in.CrearProductoUseCase;
 import com.foodstore.domain.productos.application.port.ProductoRepositoryPort;
 import com.foodstore.domain.productos.domain.exception.SkuDuplicadoException;
 import com.foodstore.domain.productos.domain.model.CategoriaId;
@@ -11,15 +9,18 @@ import com.foodstore.domain.productos.domain.model.Sku;
 import java.util.Currency;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+// No es "final": @Transactional necesita que Spring genere un proxy CGLIB
+// (subclase en tiempo de ejecucion), y CGLIB no puede subclasificar una clase final.
 @Service
 @RequiredArgsConstructor
-public class CrearProductoService implements CrearProductoUseCase {
+public class CrearProductoUseCase {
 
     private final ProductoRepositoryPort productoRepositoryPort;
 
-    @Override
-    public Producto crear(CrearProductoCommand command) {
+    @Transactional
+    public Producto execute(CrearProductoCommand command) {
         Sku sku = Sku.de(command.sku());
         if (productoRepositoryPort.existePorSku(sku)) {
             throw new SkuDuplicadoException(command.sku());

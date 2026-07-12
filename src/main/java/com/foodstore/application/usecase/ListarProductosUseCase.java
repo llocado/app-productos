@@ -1,6 +1,5 @@
-package com.foodstore.application.service;
+package com.foodstore.application.usecase;
 
-import com.foodstore.application.port.in.ListarProductosUseCase;
 import com.foodstore.domain.productos.application.port.ProductoRepositoryPort;
 import com.foodstore.domain.productos.domain.model.Producto;
 import java.util.List;
@@ -9,12 +8,11 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class ListarProductosService implements ListarProductosUseCase {
+public final class ListarProductosUseCase {
 
     private final ProductoRepositoryPort productoRepositoryPort;
 
-    @Override
-    public List<Producto> listar() {
+    public List<Producto> execute() {
         return productoRepositoryPort.listarTodos();
     }
 }

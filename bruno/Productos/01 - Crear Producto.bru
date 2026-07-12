@@ -1,0 +1,45 @@
+meta {
+  name: 01 - Crear Producto
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/productos
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "sku": "PIZZA-MARGA-01",
+    "nombre": "Pizza Margarita",
+    "descripcion": "Pizza clasica con tomate, mozzarella y albahaca",
+    "precioMonto": 8990,
+    "moneda": "CLP",
+    "categoriaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  if (res.body && res.body.id) {
+    bru.setVar("idProducto", res.body.id);
+  }
+}
+
+docs {
+  Alta de un producto nuevo. Guarda el id devuelto en la variable de entorno
+  `idProducto` para que las siguientes peticiones (Obtener por ID) lo usen
+  automaticamente.
+
+  categoriaId puede ser cualquier UUID valido: Producto no valida contra un
+  repositorio de categorias.
+}

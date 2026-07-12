@@ -1,0 +1,35 @@
+meta {
+  name: 05 - Crear Producto - SKU duplicado
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/productos
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "sku": "PIZZA-MARGA-01",
+    "nombre": "Pizza Margarita (duplicada)",
+    "descripcion": "Mismo sku que la request 01, debe fallar",
+    "precioMonto": 9990,
+    "moneda": "CLP",
+    "categoriaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  Corre "01 - Crear Producto" antes: usa el mismo sku a proposito para
+  disparar SkuDuplicadoException -> 409 Conflict.
+}

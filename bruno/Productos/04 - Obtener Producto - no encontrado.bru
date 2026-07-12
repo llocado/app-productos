@@ -1,0 +1,20 @@
+meta {
+  name: 04 - Obtener Producto - no encontrado
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/productos/00000000-0000-0000-0000-000000000000
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  UUID que no existe en la base. Debe responder 404 con
+  { "mensaje": "Producto no encontrado: ..." } via GlobalExceptionHandler.
+}

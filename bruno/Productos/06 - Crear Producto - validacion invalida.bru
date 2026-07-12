@@ -1,0 +1,35 @@
+meta {
+  name: 06 - Crear Producto - validacion invalida
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/productos
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "sku": "",
+    "nombre": "",
+    "precioMonto": -100,
+    "moneda": "CL",
+    "categoriaId": ""
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+docs {
+  Body invalido a proposito (sku/nombre vacios, precio negativo, moneda de
+  2 letras, categoriaId vacio) para verificar las validaciones @NotBlank /
+  @DecimalMin / @Size de ProductoRequest.
+}

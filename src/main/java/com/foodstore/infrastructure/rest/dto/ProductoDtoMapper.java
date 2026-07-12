@@ -1,6 +1,6 @@
 package com.foodstore.infrastructure.rest.dto;
 
-import com.foodstore.application.port.in.CrearProductoCommand;
+import com.foodstore.application.usecase.CrearProductoCommand;
 import com.foodstore.domain.productos.domain.model.CategoriaId;
 import com.foodstore.domain.productos.domain.model.Producto;
 import org.springframework.stereotype.Component;

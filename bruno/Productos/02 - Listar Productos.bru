@@ -1,0 +1,20 @@
+meta {
+  name: 02 - Listar Productos
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/productos
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Lista todos los productos guardados. Corre "01 - Crear Producto" primero
+  para tener al menos un registro.
+}
