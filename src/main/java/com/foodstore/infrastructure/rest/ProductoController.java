@@ -5,6 +5,7 @@ import com.foodstore.application.usecase.ListarProductosUseCase;
 import com.foodstore.application.usecase.ObtenerProductoUseCase;
 import com.foodstore.domain.productos.domain.model.Producto;
 import com.foodstore.domain.productos.domain.model.ProductoId;
+import com.foodstore.domain.productos.domain.model.Sku;
 import com.foodstore.infrastructure.rest.dto.ProductoDtoMapper;
 import com.foodstore.infrastructure.rest.dto.ProductoRequest;
 import com.foodstore.infrastructure.rest.dto.ProductoResponse;
@@ -36,7 +37,7 @@ public class ProductoController {
 
     @PostMapping
     public ResponseEntity<ProductoResponse> crear(@Valid @RequestBody ProductoRequest request) {
-        Producto creado = crearProductoUseCase.execute(productoDtoMapper.toCommand(request));
+        Producto creado = crearProductoUseCase.execute(request);
         ProductoResponse response = productoDtoMapper.toResponse(creado);
         return ResponseEntity.created(URI.create("/api/productos/" + response.id())).body(response);
     }
@@ -52,6 +53,12 @@ public class ProductoController {
     @GetMapping("/{id}")
     public ResponseEntity<ProductoResponse> obtener(@PathVariable String id) {
         Producto producto = obtenerProductoUseCase.execute(ProductoId.de(id));
+        return ResponseEntity.ok(productoDtoMapper.toResponse(producto));
+    }
+
+    @GetMapping("/sku/{sku}")
+    public ResponseEntity<ProductoResponse> obtenerPorSku(@PathVariable String sku) {
+        Producto producto = obtenerProductoUseCase.execute(Sku.de(sku));
         return ResponseEntity.ok(productoDtoMapper.toResponse(producto));
     }
 }

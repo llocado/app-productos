@@ -6,6 +6,7 @@ import com.foodstore.domain.productos.domain.model.CategoriaId;
 import com.foodstore.domain.productos.domain.model.Precio;
 import com.foodstore.domain.productos.domain.model.Producto;
 import com.foodstore.domain.productos.domain.model.Sku;
+import com.foodstore.infrastructure.rest.dto.ProductoRequest;
 import java.util.Currency;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,16 +21,16 @@ public class CrearProductoUseCase {
     private final ProductoRepositoryPort productoRepositoryPort;
 
     @Transactional
-    public Producto execute(CrearProductoCommand command) {
-        Sku sku = Sku.de(command.sku());
+    public Producto execute(ProductoRequest request) {
+        Sku sku = Sku.de(request.sku());
         if (productoRepositoryPort.existePorSku(sku)) {
-            throw new SkuDuplicadoException(command.sku());
+            throw new SkuDuplicadoException(request.sku());
         }
 
-        Precio precio = Precio.de(command.precioMonto(), Currency.getInstance(command.moneda()));
-        CategoriaId categoriaId = CategoriaId.de(command.categoriaId());
+        Precio precio = Precio.de(request.precioMonto(), Currency.getInstance(request.moneda()));
+        CategoriaId categoriaId = CategoriaId.de(request.categoriaId());
 
-        Producto producto = Producto.crear(sku, command.nombre(), command.descripcion(), precio, categoriaId);
+        Producto producto = Producto.crear(sku, request.nombre(), request.descripcion(), precio, categoriaId);
         return productoRepositoryPort.guardar(producto);
     }
 }

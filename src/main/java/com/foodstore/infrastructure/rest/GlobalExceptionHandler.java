@@ -25,6 +25,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(StockInsuficienteException.class)
     public ResponseEntity<ErrorResponse> handleStockInsuficiente(StockInsuficienteException ex) {
         String mensaje = "Stock insuficiente: disponible=" + ex.getDisponible() + ", solicitado=" + ex.getSolicitado();
-        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(new ErrorResponse(mensaje));
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(new ErrorResponse(mensaje));
     }
 }

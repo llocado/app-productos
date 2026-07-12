@@ -1,5 +1,6 @@
 plugins {
 	id 'java'
+	id 'jvm-test-suite'
 	id 'org.springframework.boot' version '4.1.0'
 	id 'io.spring.dependency-management' version '1.1.7'
 }
@@ -17,7 +18,6 @@ repositories {
 	mavenCentral()
 	maven {
 		name = "GitHubPackages"
-		// TODO: reemplaza TU_USUARIO_GITHUB por el owner/org real del repo de lib-domain-foods
 		url = uri("https://maven.pkg.github.com/llocado/lib-domain-foods")
 		credentials {
 			username = project.findProperty("gprUser") ?: System.getenv("GITHUB_ACTOR")
@@ -26,21 +26,71 @@ repositories {
 	}
 }
 
+// --- 1. DEPENDENCIAS DEL PROYECTO PRINCIPAL (MAIN) Y TEST UNITARIOS ---
 dependencies {
 	implementation 'com.foodstore:lib-domain-foods:0.0.1-SNAPSHOT'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
+
 	compileOnly 'org.projectlombok:lombok'
-	runtimeOnly 'org.postgresql:postgresql'
 	annotationProcessor 'org.projectlombok:lombok'
-	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+	runtimeOnly 'org.postgresql:postgresql'
+
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testCompileOnly 'org.projectlombok:lombok'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+// --- 2. REGISTRO DE LA SUITE DE INTEGRACIÓN ---
+testing {
+	suites {
+		test {
+			useJUnitJupiter()
+		}
+
+		intTest(JvmTestSuite) {
+			useJUnitJupiter()
+
+			targets {
+				all {
+					testTask.configure {
+						group = 'verification'
+						description = 'Ejecuta los tests de integracion (Testcontainers + PostgreSQL) del proyecto.'
+						shouldRunAfter(test)
+					}
+				}
+			}
+		}
+	}
+}
+
+// --- 3. CONFIGURACIÓN EXPLÍCITA DE DEPENDENCIAS PARA INT_TEST ---
+dependencies {
+	intTestImplementation platform('org.springframework.boot:spring-boot-dependencies:4.1.0')
+
+	intTestImplementation project()
+	intTestImplementation 'com.foodstore:lib-domain-foods:0.0.1-SNAPSHOT'
+
+	intTestImplementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	intTestImplementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	intTestImplementation 'org.springframework.boot:spring-boot-starter-validation'
+	intTestImplementation 'org.springframework.boot:spring-boot-starter-test'
+	intTestImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+
+	intTestImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	intTestImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+	intTestImplementation 'org.testcontainers:testcontainers-postgresql'
+
+	intTestRuntimeOnly 'org.postgresql:postgresql'
+	intTestRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	intTestCompileOnly 'org.projectlombok:lombok'
+	intTestAnnotationProcessor 'org.projectlombok:lombok'
 }

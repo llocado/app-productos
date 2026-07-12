@@ -1,23 +1,11 @@
 package com.foodstore.infrastructure.rest.dto;
 
-import com.foodstore.application.usecase.CrearProductoCommand;
 import com.foodstore.domain.productos.domain.model.CategoriaId;
 import com.foodstore.domain.productos.domain.model.Producto;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ProductoDtoMapper {
-
-    public CrearProductoCommand toCommand(ProductoRequest request) {
-        return new CrearProductoCommand(
-                request.sku(),
-                request.nombre(),
-                request.descripcion(),
-                request.precioMonto(),
-                request.moneda(),
-                request.categoriaId()
-        );
-    }
 
     public ProductoResponse toResponse(Producto producto) {
         CategoriaId categoriaId = producto.getCategoriaId();
