@@ -1,8 +1,10 @@
 package com.foodstore.infrastructure.rest;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -14,10 +16,12 @@ import com.foodstore.domain.productos.domain.model.ProductoId;
 import com.foodstore.domain.productos.domain.model.Sku;
 import com.foodstore.infrastructure.rest.dto.ProductoRequest;
 import com.foodstore.infrastructure.rest.dto.ProductoResponse;
+import com.foodstore.infrastructure.rest.dto.ProductoUpdateRequest;
 import java.math.BigDecimal;
 import java.util.Currency;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -161,6 +165,80 @@ class ProductosIntegrationTest {
     @Test
     void obtenerPorSku_DeberiaRetornar404_CuandoElSkuNoExiste() throws Exception {
         mockMvc.perform(get("/api/productos/sku/{sku}", "SKU-NO-EXISTE"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.mensaje").exists());
+    }
+
+    // ---------------------------------------------------------------
+    // Test 4: Actualizar producto (PUT) -> 200 + cambios persistidos en BD
+    // ---------------------------------------------------------------
+    @Test
+    void actualizar_DeberiaRetornar200YPersistirLosCambiosEnPostgres_CuandoElRequestEsValido() throws Exception {
+        Producto guardado = productoRepositoryPort.guardar(
+                crearProducto("SKU-INT-301", "Manzana Fuji", "1500", "CLP"));
+        String id = guardado.getId().getValor().toString();
+
+        ProductoUpdateRequest request = new ProductoUpdateRequest(
+                "Manzana Fuji Premium",
+                "Manzana fresca importada, calibre extra",
+                new BigDecimal("1800"),
+                "CLP",
+                CATEGORIA_ID
+        );
+
+        mockMvc.perform(put("/api/productos/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombre").value("Manzana Fuji Premium"))
+                .andExpect(jsonPath("$.precioMonto").value(1800));
+
+        Optional<Producto> actualizado = productoRepositoryPort.buscarPorId(guardado.getId());
+
+        assertThat(actualizado).isPresent();
+        assertThat(actualizado.get().getNombre()).isEqualTo("Manzana Fuji Premium");
+        assertThat(actualizado.get().getDescripcion()).isEqualTo("Manzana fresca importada, calibre extra");
+        assertThat(actualizado.get().getPrecio().getMonto()).isEqualByComparingTo(new BigDecimal("1800"));
+    }
+
+    @Test
+    void actualizar_DeberiaRetornar404_CuandoElProductoNoExiste() throws Exception {
+        String idInexistente = UUID.randomUUID().toString();
+        ProductoUpdateRequest request = new ProductoUpdateRequest(
+                "Manzana Fuji Premium",
+                "Manzana fresca importada",
+                new BigDecimal("1800"),
+                "CLP",
+                CATEGORIA_ID
+        );
+
+        mockMvc.perform(put("/api/productos/{id}", idInexistente)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.mensaje").exists());
+    }
+
+    // ---------------------------------------------------------------
+    // Test 5: Eliminar producto (DELETE) -> 204 + ya no existe en BD
+    // ---------------------------------------------------------------
+    @Test
+    void eliminar_DeberiaRetornar204YBorrarDePostgres_CuandoElProductoExiste() throws Exception {
+        Producto guardado = productoRepositoryPort.guardar(
+                crearProducto("SKU-INT-401", "Pan Baguette", "1200", "CLP"));
+        String id = guardado.getId().getValor().toString();
+
+        mockMvc.perform(delete("/api/productos/{id}", id))
+                .andExpect(status().isNoContent());
+
+        assertThat(productoRepositoryPort.buscarPorId(guardado.getId())).isEmpty();
+    }
+
+    @Test
+    void eliminar_DeberiaRetornar404_CuandoElProductoNoExiste() throws Exception {
+        String idInexistente = UUID.randomUUID().toString();
+
+        mockMvc.perform(delete("/api/productos/{id}", idInexistente))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.mensaje").exists());
     }

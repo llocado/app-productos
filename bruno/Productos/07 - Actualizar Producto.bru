@@ -1,0 +1,36 @@
+meta {
+  name: 07 - Actualizar Producto
+  type: http
+  seq: 7
+}
+
+put {
+  url: {{baseUrl}}/api/productos/{{idProducto}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Pizza Margarita Premium",
+    "descripcion": "Pizza clasica con tomate, mozzarella fior di latte y albahaca fresca",
+    "precioMonto": 10990,
+    "moneda": "CLP",
+    "categoriaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Usa la variable `idProducto`, seteada automaticamente por
+  "01 - Crear Producto" al correrla. El sku no se puede modificar
+  (el dominio no expone una operacion para eso); solo nombre, descripcion,
+  precio y categoria.
+}

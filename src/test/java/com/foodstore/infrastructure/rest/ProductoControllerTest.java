@@ -2,16 +2,22 @@ package com.foodstore.infrastructure.rest;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.foodstore.application.usecase.ActualizarProductoUseCase;
 import com.foodstore.application.usecase.CrearProductoUseCase;
+import com.foodstore.application.usecase.EliminarProductoUseCase;
+import com.foodstore.application.usecase.GenerarDescripcionProductoUseCase;
 import com.foodstore.application.usecase.ListarProductosUseCase;
 import com.foodstore.application.usecase.ObtenerProductoUseCase;
 import com.foodstore.domain.productos.domain.exception.ProductoNoEncontradoException;
@@ -20,8 +26,10 @@ import com.foodstore.domain.productos.domain.model.Precio;
 import com.foodstore.domain.productos.domain.model.Producto;
 import com.foodstore.domain.productos.domain.model.ProductoId;
 import com.foodstore.domain.productos.domain.model.Sku;
+import com.foodstore.infrastructure.rest.dto.GenerarDescripcionRequest;
 import com.foodstore.infrastructure.rest.dto.ProductoDtoMapper;
 import com.foodstore.infrastructure.rest.dto.ProductoRequest;
+import com.foodstore.infrastructure.rest.dto.ProductoUpdateRequest;
 import java.math.BigDecimal;
 import java.util.Currency;
 import java.util.UUID;
@@ -60,6 +68,15 @@ class ProductoControllerTest {
 
     @MockitoBean
     private ObtenerProductoUseCase obtenerProductoUseCase;
+
+    @MockitoBean
+    private ActualizarProductoUseCase actualizarProductoUseCase;
+
+    @MockitoBean
+    private EliminarProductoUseCase eliminarProductoUseCase;
+
+    @MockitoBean
+    private GenerarDescripcionProductoUseCase generarDescripcionProductoUseCase;
 
     @Test
     void crear_DeberiaRetornar201YElProductoCreado_CuandoElRequestEsValido() throws Exception {
@@ -140,6 +157,122 @@ class ProductoControllerTest {
         mockMvc.perform(get("/api/productos/{id}", idInexistente))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.mensaje").value(mensaje));
+    }
+
+    @Test
+    void actualizar_DeberiaRetornar200YElProductoActualizado_CuandoElRequestEsValido() throws Exception {
+        Producto producto = crearProducto();
+        String id = producto.getId().getValor().toString();
+        ProductoUpdateRequest request = new ProductoUpdateRequest(
+                "Manzana Fuji Premium",
+                "Manzana fresca importada, calibre extra",
+                new BigDecimal("1800"),
+                "CLP",
+                CATEGORIA_ID
+        );
+
+        when(actualizarProductoUseCase.execute(eq(producto.getId()), any(ProductoUpdateRequest.class)))
+                .thenReturn(producto);
+
+        mockMvc.perform(put("/api/productos/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id));
+
+        verify(actualizarProductoUseCase).execute(eq(producto.getId()), any(ProductoUpdateRequest.class));
+    }
+
+    @Test
+    void actualizar_DeberiaRetornar400_CuandoElRequestEsInvalido() throws Exception {
+        String id = UUID.randomUUID().toString();
+        ProductoUpdateRequest requestInvalido = new ProductoUpdateRequest(
+                "",
+                "Manzana fresca importada",
+                new BigDecimal("-10"),
+                "CLP",
+                CATEGORIA_ID
+        );
+
+        mockMvc.perform(put("/api/productos/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestInvalido)))
+                .andExpect(status().isBadRequest());
+
+        verify(actualizarProductoUseCase, never()).execute(any(ProductoId.class), any(ProductoUpdateRequest.class));
+    }
+
+    @Test
+    void actualizar_DeberiaRetornar404_CuandoElProductoNoExiste() throws Exception {
+        String idInexistente = UUID.randomUUID().toString();
+        String mensaje = "Producto no encontrado: " + idInexistente;
+        ProductoUpdateRequest request = new ProductoUpdateRequest(
+                "Manzana Fuji Premium",
+                "Manzana fresca importada",
+                new BigDecimal("1800"),
+                "CLP",
+                CATEGORIA_ID
+        );
+
+        when(actualizarProductoUseCase.execute(any(ProductoId.class), any(ProductoUpdateRequest.class)))
+                .thenThrow(new ProductoNoEncontradoException(mensaje));
+
+        mockMvc.perform(put("/api/productos/{id}", idInexistente)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.mensaje").value(mensaje));
+    }
+
+    @Test
+    void eliminar_DeberiaRetornar204_CuandoElProductoExiste() throws Exception {
+        String id = UUID.randomUUID().toString();
+
+        mockMvc.perform(delete("/api/productos/{id}", id))
+                .andExpect(status().isNoContent());
+
+        verify(eliminarProductoUseCase).execute(eq(ProductoId.de(id)));
+    }
+
+    @Test
+    void eliminar_DeberiaRetornar404_CuandoElProductoNoExiste() throws Exception {
+        String idInexistente = UUID.randomUUID().toString();
+        String mensaje = "Producto no encontrado: " + idInexistente;
+
+        doThrow(new ProductoNoEncontradoException(mensaje))
+                .when(eliminarProductoUseCase).execute(any(ProductoId.class));
+
+        mockMvc.perform(delete("/api/productos/{id}", idInexistente))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.mensaje").value(mensaje));
+    }
+
+    @Test
+    void generarDescripcion_DeberiaRetornar200YLaDescripcion_CuandoElRequestEsValido() throws Exception {
+        GenerarDescripcionRequest request = new GenerarDescripcionRequest("Manzana Fuji", "Frutas");
+
+        when(generarDescripcionProductoUseCase.execute("Manzana Fuji", "Frutas"))
+                .thenReturn("Manzana fresca y crujiente, ideal para el dia a dia.");
+
+        mockMvc.perform(post("/api/productos/generar-descripcion")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.descripcion").value("Manzana fresca y crujiente, ideal para el dia a dia."));
+
+        verify(generarDescripcionProductoUseCase).execute("Manzana Fuji", "Frutas");
+    }
+
+    @Test
+    void generarDescripcion_DeberiaRetornar400_CuandoElNombreEstaVacio() throws Exception {
+        GenerarDescripcionRequest requestInvalido = new GenerarDescripcionRequest("", "Frutas");
+
+        mockMvc.perform(post("/api/productos/generar-descripcion")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestInvalido)))
+                .andExpect(status().isBadRequest());
+
+        verify(generarDescripcionProductoUseCase, never()).execute(any(), any());
     }
 
     private Producto crearProducto() {

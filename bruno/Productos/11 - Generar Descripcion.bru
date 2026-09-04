@@ -1,0 +1,33 @@
+meta {
+  name: 11 - Generar Descripcion
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/productos/generar-descripcion
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Pizza Margarita",
+    "categoria": "Comida preparada"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Genera una descripcion de producto con Claude (Spring AI). Requiere la
+  variable de entorno ANTHROPIC_API_KEY seteada con una key real de
+  console.anthropic.com; sin ella, la app arranca igual (usa un placeholder)
+  pero esta request falla con error de autenticacion contra Anthropic.
+}

@@ -1,0 +1,53 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-crear-tabla-productos
+      author: foodstore
+      changes:
+        - createTable:
+            tableName: productos
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_productos
+                    nullable: false
+              - column:
+                  name: sku
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uk_productos_sku
+              - column:
+                  name: nombre
+                  type: varchar(150)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: descripcion
+                  type: varchar(1000)
+              - column:
+                  name: precio_monto
+                  type: numeric(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: precio_moneda
+                  type: varchar(3)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: stock
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: categoria_id
+                  type: uuid
+              - column:
+                  name: activo
+                  type: boolean
+                  constraints:
+                    nullable: false

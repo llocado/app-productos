@@ -1,0 +1,34 @@
+meta {
+  name: 08 - Actualizar Producto - no encontrado
+  type: http
+  seq: 8
+}
+
+put {
+  url: {{baseUrl}}/api/productos/3fa85f64-5717-4562-b3fc-2c963f66afa6
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Producto inexistente",
+    "descripcion": "No deberia encontrarse",
+    "precioMonto": 1000,
+    "moneda": "CLP",
+    "categoriaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  Id que no existe en la base de datos, para verificar
+  ProductoNoEncontradoException -> 404 Not Found en el PUT.
+}

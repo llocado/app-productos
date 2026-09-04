@@ -1,0 +1,38 @@
+package com.foodstore.application.usecase;
+
+import com.foodstore.domain.productos.application.port.ProductoRepositoryPort;
+import com.foodstore.domain.productos.domain.exception.ProductoNoEncontradoException;
+import com.foodstore.domain.productos.domain.model.CategoriaId;
+import com.foodstore.domain.productos.domain.model.Precio;
+import com.foodstore.domain.productos.domain.model.Producto;
+import com.foodstore.domain.productos.domain.model.ProductoId;
+import com.foodstore.infrastructure.rest.dto.ProductoUpdateRequest;
+import java.util.Currency;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+// No es "final": @Transactional necesita que Spring genere un proxy CGLIB
+// (subclase en tiempo de ejecucion), y CGLIB no puede subclasificar una clase final.
+@Service
+@RequiredArgsConstructor
+public class ActualizarProductoUseCase {
+
+    private final ProductoRepositoryPort productoRepositoryPort;
+
+    /**
+     * @throws ProductoNoEncontradoException si no existe un producto con ese id.
+     */
+    @Transactional
+    public Producto execute(ProductoId id, ProductoUpdateRequest request) {
+        Producto producto = productoRepositoryPort.buscarPorId(id)
+                .orElseThrow(() -> new ProductoNoEncontradoException("Producto no encontrado: " + id.getValor()));
+
+        producto.renombrar(request.nombre());
+        producto.actualizarDescripcion(request.descripcion());
+        producto.cambiarPrecio(Precio.de(request.precioMonto(), Currency.getInstance(request.moneda())));
+        producto.reclasificar(CategoriaId.de(request.categoriaId()));
+
+        return productoRepositoryPort.guardar(producto);
+    }
+}

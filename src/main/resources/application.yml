@@ -13,9 +13,27 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      # validate en producción; usa Flyway/Liquibase para versionar el esquema.
-      ddl-auto: update
+      # El esquema lo gestiona Liquibase (ver mas abajo); Hibernate solo valida
+      # que las entidades coincidan con lo que Liquibase ya creo.
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
         format_sql: true
+
+  # Migraciones de esquema versionadas con Liquibase.
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+  # Generacion de descripciones de producto via Claude (Spring AI).
+  # El valor por defecto de api-key es un placeholder invalido: permite que la
+  # app y los tests levanten el contexto sin la variable de entorno seteada;
+  # solo falla (401) si de verdad se invoca el endpoint de generar-descripcion.
+  # Exporta ANTHROPIC_API_KEY con una key real de console.anthropic.com para usarlo.
+  ai:
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY:sk-ant-no-configurada}
+      chat:
+        options:
+          model: claude-haiku-4-5
+          max-tokens: 300

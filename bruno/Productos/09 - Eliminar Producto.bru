@@ -1,0 +1,21 @@
+meta {
+  name: 09 - Eliminar Producto
+  type: http
+  seq: 9
+}
+
+delete {
+  url: {{baseUrl}}/api/productos/{{idProducto}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 204
+}
+
+docs {
+  Usa la variable `idProducto`, seteada automaticamente por
+  "01 - Crear Producto" al correrla. Corre esta request al final: deja el
+  producto de prueba eliminado.
+}
