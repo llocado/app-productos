@@ -6,6 +6,8 @@ import static org.mockito.Mockito.when;
 
 import com.foodstore.domain.productos.application.port.ProductoRepositoryPort;
 import com.foodstore.domain.productos.domain.model.CategoriaId;
+import com.foodstore.domain.productos.domain.model.CriterioPaginacion;
+import com.foodstore.domain.productos.domain.model.Pagina;
 import com.foodstore.domain.productos.domain.model.Precio;
 import com.foodstore.domain.productos.domain.model.Producto;
 import com.foodstore.domain.productos.domain.model.Sku;
@@ -34,26 +36,32 @@ class ListarProductosUseCaseTest {
     }
 
     @Test
-    void execute_DeberiaRetornarListaCompleta_CuandoExistenProductosRegistrados() {
+    void execute_DeberiaRetornarLaPaginaDelPuerto_CuandoExistenProductosRegistrados() {
         Producto producto1 = crearProducto("SKU-001", "Manzana Fuji");
         Producto producto2 = crearProducto("SKU-002", "Pera Williams");
+        CriterioPaginacion criterio = CriterioPaginacion.de(0, 20);
+        Pagina<Producto> pagina = Pagina.de(List.of(producto1, producto2), 0, 20, 2);
 
-        when(productoRepositoryPort.listarTodos()).thenReturn(List.of(producto1, producto2));
+        when(productoRepositoryPort.listarPaginado(criterio)).thenReturn(pagina);
 
-        List<Producto> resultado = listarProductosUseCase.execute();
+        Pagina<Producto> resultado = listarProductosUseCase.execute(criterio);
 
-        assertThat(resultado).hasSize(2).containsExactly(producto1, producto2);
-        verify(productoRepositoryPort).listarTodos();
+        assertThat(resultado.getContenido()).containsExactly(producto1, producto2);
+        assertThat(resultado.getTotalElementos()).isEqualTo(2);
+        verify(productoRepositoryPort).listarPaginado(criterio);
     }
 
     @Test
-    void execute_DeberiaRetornarListaVacia_CuandoNoExistenProductosRegistrados() {
-        when(productoRepositoryPort.listarTodos()).thenReturn(List.of());
+    void execute_DeberiaRetornarPaginaVacia_CuandoNoExistenProductosRegistrados() {
+        CriterioPaginacion criterio = CriterioPaginacion.de(0, 20);
+        Pagina<Producto> paginaVacia = Pagina.de(List.of(), 0, 20, 0);
 
-        List<Producto> resultado = listarProductosUseCase.execute();
+        when(productoRepositoryPort.listarPaginado(criterio)).thenReturn(paginaVacia);
 
-        assertThat(resultado).isEmpty();
-        verify(productoRepositoryPort).listarTodos();
+        Pagina<Producto> resultado = listarProductosUseCase.execute(criterio);
+
+        assertThat(resultado.getContenido()).isEmpty();
+        verify(productoRepositoryPort).listarPaginado(criterio);
     }
 
     private Producto crearProducto(String sku, String nombre) {

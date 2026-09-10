@@ -1,1 +1,8 @@
 rootProject.name = 'app-productos'
+
+// Desarrollo local de lib-domain-foods: mientras no se publique una nueva
+// version a GitHub Packages, Gradle sustituye la dependencia
+// com.foodstore:lib-domain-foods por este build local (mismo group:name).
+// Si el checkout no existe en esa ruta, comenta esta linea y el proyecto
+// vuelve a resolver la dependencia publicada normalmente.
+//includeBuild('../lib-domain-foods')

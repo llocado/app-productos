@@ -6,18 +6,22 @@ import com.foodstore.application.usecase.EliminarProductoUseCase;
 import com.foodstore.application.usecase.GenerarDescripcionProductoUseCase;
 import com.foodstore.application.usecase.ListarProductosUseCase;
 import com.foodstore.application.usecase.ObtenerProductoUseCase;
+import com.foodstore.domain.productos.domain.model.CriterioPaginacion;
+import com.foodstore.domain.productos.domain.model.Pagina;
 import com.foodstore.domain.productos.domain.model.Producto;
 import com.foodstore.domain.productos.domain.model.ProductoId;
 import com.foodstore.domain.productos.domain.model.Sku;
 import com.foodstore.infrastructure.rest.dto.GenerarDescripcionRequest;
 import com.foodstore.infrastructure.rest.dto.GenerarDescripcionResponse;
+import com.foodstore.infrastructure.rest.dto.PaginaResponse;
 import com.foodstore.infrastructure.rest.dto.ProductoDtoMapper;
 import com.foodstore.infrastructure.rest.dto.ProductoRequest;
 import com.foodstore.infrastructure.rest.dto.ProductoResponse;
 import com.foodstore.infrastructure.rest.dto.ProductoUpdateRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.net.URI;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -27,6 +31,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -54,11 +59,11 @@ public class ProductoController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ProductoResponse>> listar() {
-        List<ProductoResponse> productos = listarProductosUseCase.execute().stream()
-                .map(productoDtoMapper::toResponse)
-                .toList();
-        return ResponseEntity.ok(productos);
+    public ResponseEntity<PaginaResponse<ProductoResponse>> listar(
+            @RequestParam(defaultValue = "0") @Min(0) int pagina,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int tamano) {
+        Pagina<Producto> resultado = listarProductosUseCase.execute(CriterioPaginacion.de(pagina, tamano));
+        return ResponseEntity.ok(PaginaResponse.de(resultado, productoDtoMapper::toResponse));
     }
 
     @GetMapping("/{id}")

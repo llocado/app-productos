@@ -5,9 +5,14 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/api/productos
+  url: {{baseUrl}}/api/productos?pagina=0&tamano=20
   body: none
   auth: none
+}
+
+params:query {
+  pagina: 0
+  tamano: 20
 }
 
 assert {
@@ -15,6 +20,10 @@ assert {
 }
 
 docs {
-  Lista todos los productos guardados. Corre "01 - Crear Producto" primero
-  para tener al menos un registro.
+  Lista productos de forma paginada (orden por nombre ascendente).
+  Corre "01 - Crear Producto" primero para tener al menos un registro.
+
+  Query params opcionales: `pagina` (default 0) y `tamano` (default 20,
+  maximo 100). La respuesta viene envuelta:
+  { "contenido": [...], "pagina": 0, "tamano": 20, "totalElementos": N, "totalPaginas": N }
 }

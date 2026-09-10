@@ -14,6 +14,7 @@ import com.foodstore.domain.productos.domain.model.Precio;
 import com.foodstore.domain.productos.domain.model.Producto;
 import com.foodstore.domain.productos.domain.model.ProductoId;
 import com.foodstore.domain.productos.domain.model.Sku;
+import com.foodstore.infrastructure.rest.dto.PaginaResponse;
 import com.foodstore.infrastructure.rest.dto.ProductoRequest;
 import com.foodstore.infrastructure.rest.dto.ProductoResponse;
 import com.foodstore.infrastructure.rest.dto.ProductoUpdateRequest;
@@ -122,11 +123,15 @@ class ProductosIntegrationTest {
 
         MvcResult result = mockMvc.perform(get("/api/productos"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElementos").value(2))
+                .andExpect(jsonPath("$.pagina").value(0))
+                .andExpect(jsonPath("$.tamano").value(20))
                 .andReturn();
 
-        List<ProductoResponse> productos = objectMapper.readValue(
+        PaginaResponse<ProductoResponse> pagina = objectMapper.readValue(
                 result.getResponse().getContentAsString(),
-                objectMapper.getTypeFactory().constructCollectionType(List.class, ProductoResponse.class));
+                objectMapper.getTypeFactory().constructParametricType(PaginaResponse.class, ProductoResponse.class));
+        List<ProductoResponse> productos = pagina.contenido();
 
         assertThat(productos).hasSize(2);
         assertThat(productos)

@@ -1,5 +1,6 @@
 package com.foodstore.infrastructure.rest;
 
+import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -22,6 +23,8 @@ import com.foodstore.application.usecase.ListarProductosUseCase;
 import com.foodstore.application.usecase.ObtenerProductoUseCase;
 import com.foodstore.domain.productos.domain.exception.ProductoNoEncontradoException;
 import com.foodstore.domain.productos.domain.model.CategoriaId;
+import com.foodstore.domain.productos.domain.model.CriterioPaginacion;
+import com.foodstore.domain.productos.domain.model.Pagina;
 import com.foodstore.domain.productos.domain.model.Precio;
 import com.foodstore.domain.productos.domain.model.Producto;
 import com.foodstore.domain.productos.domain.model.ProductoId;
@@ -32,6 +35,7 @@ import com.foodstore.infrastructure.rest.dto.ProductoRequest;
 import com.foodstore.infrastructure.rest.dto.ProductoUpdateRequest;
 import java.math.BigDecimal;
 import java.util.Currency;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -128,6 +132,33 @@ class ProductoControllerTest {
                 .andExpect(status().isBadRequest());
 
         verify(crearProductoUseCase, never()).execute(any(ProductoRequest.class));
+    }
+
+    @Test
+    void listar_DeberiaRetornar200YLaPaginaDeProductos_ConLosParametrosPorDefecto() throws Exception {
+        Producto producto = crearProducto();
+        Pagina<Producto> pagina = Pagina.de(List.of(producto), 0, 20, 1);
+
+        when(listarProductosUseCase.execute(any(CriterioPaginacion.class))).thenReturn(pagina);
+
+        mockMvc.perform(get("/api/productos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.contenido", hasSize(1)))
+                .andExpect(jsonPath("$.contenido[0].sku").value("SKU-001"))
+                .andExpect(jsonPath("$.pagina").value(0))
+                .andExpect(jsonPath("$.tamano").value(20))
+                .andExpect(jsonPath("$.totalElementos").value(1))
+                .andExpect(jsonPath("$.totalPaginas").value(1));
+
+        verify(listarProductosUseCase).execute(any(CriterioPaginacion.class));
+    }
+
+    @Test
+    void listar_DeberiaRetornar400_CuandoElTamanoExcedeElMaximoPermitido() throws Exception {
+        mockMvc.perform(get("/api/productos").param("tamano", "101"))
+                .andExpect(status().isBadRequest());
+
+        verify(listarProductosUseCase, never()).execute(any(CriterioPaginacion.class));
     }
 
     @Test
