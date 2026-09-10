@@ -12,6 +12,39 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U foodstore_user -d foodstore_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Empaqueta la app en Docker (Dockerfile en la raiz). Uso pensado: verificar
+  # de vez en cuando que el stack completo funciona empaquetado, o desplegar.
+  # Para el dia a dia de desarrollo sigue usando `./gradlew bootRun`.
+  app-productos:
+    build:
+      context: .
+      secrets:
+        - github_actor
+        - github_token
+    container_name: app-productos
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres-db
+      DB_PORT: 5432
+      DB_NAME: foodstore_db
+      DB_USER: foodstore_user
+      DB_PASSWORD: foodstore_password
+    ports:
+      - "8080:8080"
 
 volumes:
   postgres_data:
+
+secrets:
+  github_actor:
+    environment: GITHUB_ACTOR
+  github_token:
+    environment: GITHUB_TOKEN
