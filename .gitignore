@@ -36,3 +36,6 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Documentacion interna (no publicar por ahora) ###
+docs/ROADMAP.md
