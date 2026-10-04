@@ -18,6 +18,7 @@ java {
 ext['tomcat.version'] = '11.0.25'
 ext['jackson-bom.version'] = '3.1.7'
 ext['log4j2.version'] = '2.25.5'
+ext['postgresql.version'] = '42.7.12'
 ext['jackson-2-bom.version'] = '2.21.7'
 
 repositories {
