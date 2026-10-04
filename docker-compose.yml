@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: foodstore_user
       POSTGRES_PASSWORD: foodstore_password
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -38,7 +38,7 @@ services:
       DB_USER: foodstore_user
       DB_PASSWORD: foodstore_password
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
 
 volumes:
   postgres_data:
