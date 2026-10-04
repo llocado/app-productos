@@ -16,7 +16,7 @@ headers {
 
 body:json {
   {
-    "sku": "PIZZA-MARGA-01",
+    "sku": "{{skuUnico}}",
     "nombre": "Pizza Margarita (duplicada)",
     "descripcion": "Mismo sku que la request 01, debe fallar",
     "precioMonto": 9990,
@@ -30,6 +30,6 @@ assert {
 }
 
 docs {
-  Corre "01 - Crear Producto" antes: usa el mismo sku a proposito para
-  disparar SkuDuplicadoException -> 409 Conflict.
+  Corre "01 - Crear Producto" antes: reutiliza su sku (variable `skuUnico`)
+  a proposito para disparar SkuDuplicadoException -> 409 Conflict.
 }

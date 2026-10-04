@@ -16,7 +16,7 @@ headers {
 
 body:json {
   {
-    "sku": "PIZZA-MARGA-01",
+    "sku": "{{skuUnico}}",
     "nombre": "Pizza Margarita",
     "descripcion": "Pizza clasica con tomate, mozzarella y albahaca",
     "precioMonto": 8990,
@@ -29,6 +29,12 @@ assert {
   res.status: eq 201
 }
 
+script:pre-request {
+  // SKU nuevo en cada ejecucion (3-20 caracteres: "PIZZA-" + 13 digitos): asi repetir esta request
+  // no choca con productos de ejecuciones anteriores (409 por SKU duplicado).
+  bru.setVar("skuUnico", "PIZZA-" + Date.now());
+}
+
 script:post-response {
   if (res.body && res.body.id) {
     bru.setVar("idProducto", res.body.id);
@@ -36,7 +42,8 @@ script:post-response {
 }
 
 docs {
-  Alta de un producto nuevo. Guarda el id devuelto en la variable de entorno
+  Alta de un producto nuevo con un SKU distinto en cada ejecucion (variable
+  `skuUnico`, generada antes de enviar). Guarda el id devuelto en la variable de entorno
   `idProducto` para que las siguientes peticiones (Obtener por ID) lo usen
   automaticamente.
 
