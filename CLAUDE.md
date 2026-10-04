@@ -5,8 +5,9 @@ maduro de todos. Reglas compartidas con el resto del proyecto en
 `../CLAUDE.md` (arquitectura hexagonal, commits, verificación, etc.) —
 este archivo solo cubre lo específico de este repo.
 
-Diseño completo del proyecto: `docs/ROADMAP.md` (vive en este repo, es la
-fuente de verdad para todos los demás servicios también).
+Diseño completo del proyecto: `docs/ROADMAP.md` (vive en disco en este repo y
+es la fuente de verdad para todos los servicios, pero está en `.gitignore` a
+propósito: es interno y no se publica por ahora — nunca agregarlo a un commit).
 
 ## Stack
 
