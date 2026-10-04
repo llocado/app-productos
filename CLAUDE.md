@@ -30,6 +30,7 @@ docker compose up -d      # Postgres de este servicio
 ./gradlew test             # unitarios
 ./gradlew intTest          # integración (Testcontainers, requiere Docker)
 ./gradlew jacocoFullReport   # cobertura test + intTest -> build/reports/jacoco/jacocoFullReport/index.html
+./gradlew pitest              # tests de mutacion (solo unitarios) -> build/reports/pitest/index.html
 ./gradlew sonar              # analisis SonarQube (ver ../CLAUDE.md: requiere SONAR_TOKEN y el perfil `calidad`)
 ./gradlew build --refresh-dependencies   # tras un nuevo push a lib-domain-foods
 ```
