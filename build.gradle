@@ -14,6 +14,12 @@ java {
 	}
 }
 
+// Versiones parcheadas por vulnerabilidades conocidas (GHSA) en las que gestiona Spring Boot 4.1.0.
+ext['tomcat.version'] = '11.0.25'
+ext['jackson-bom.version'] = '3.1.7'
+ext['log4j2.version'] = '2.25.5'
+ext['jackson-2-bom.version'] = '2.21.7'
+
 repositories {
 	mavenCentral()
 	maven {
