@@ -8,6 +8,9 @@ spring:
     username: ${DB_USER:foodstore_user}
     password: ${DB_PASSWORD:foodstore_password}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      # Con la base caida, falla en 5 s (por defecto 30 s) en vez de dejar hilos y reintentos esperando.
+      connection-timeout: ${DB_CONNECTION_TIMEOUT:5000}
 
   # Configuración de JPA / Hibernate
   jpa:
@@ -16,7 +19,7 @@ spring:
       # El esquema lo gestiona Liquibase (ver mas abajo); Hibernate solo valida
       # que las entidades coincidan con lo que Liquibase ya creo.
       ddl-auto: validate
-    show-sql: true
+    show-sql: ${JPA_SHOW_SQL:false}
     properties:
       hibernate:
         format_sql: true
@@ -37,3 +40,12 @@ spring:
         options:
           model: claude-haiku-4-5
           max-tokens: 300
+
+logging:
+  level:
+    root: INFO
+    com.foodstore: INFO
+  pattern:
+    # Agrega [requestId|correlationId] y reemplaza saltos de linea en el mensaje:
+    # evita que un valor controlado por un cliente falsifique lineas de log.
+    console: "%clr(%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX}){faint} %clr(%5p) %clr(${PID:-}){magenta} %clr(---){faint} ${LOGGED_APPLICATION_NAME:-}%clr([%15.15t]){faint} %clr([%X{requestId:-}|%X{correlationId:-}]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %replace(%m){'[\\r\\n]','_'}%n%wEx"

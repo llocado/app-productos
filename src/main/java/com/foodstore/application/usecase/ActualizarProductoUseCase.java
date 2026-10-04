@@ -9,11 +9,13 @@ import com.foodstore.domain.productos.domain.model.ProductoId;
 import com.foodstore.infrastructure.rest.dto.ProductoUpdateRequest;
 import java.util.Currency;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 // No es "final": @Transactional necesita que Spring genere un proxy CGLIB
 // (subclase en tiempo de ejecucion), y CGLIB no puede subclasificar una clase final.
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ActualizarProductoUseCase {
@@ -33,6 +35,8 @@ public class ActualizarProductoUseCase {
         producto.cambiarPrecio(Precio.de(request.precioMonto(), Currency.getInstance(request.moneda())));
         producto.reclasificar(CategoriaId.de(request.categoriaId()));
 
-        return productoRepositoryPort.guardar(producto);
+        Producto guardado = productoRepositoryPort.guardar(producto);
+        log.info("Producto actualizado id={}", id.getValor());
+        return guardado;
     }
 }
