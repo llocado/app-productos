@@ -1,0 +1,35 @@
+meta {
+  name: 09 - Ingresar Stock
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/api/productos/{{idProducto}}/stock/ingresos
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "unidades": 40
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.stock: eq 40
+}
+
+docs {
+  Llegada de mercaderia: suma 40 unidades al stock del producto creado en "01 - Crear Producto" (nace con stock 0, y
+  esta es la unica forma de que tenga). Cada llamada SUMA: correrla otra vez deja 80. Unidades validas: de 1 a 100000
+  por ingreso.
+
+  Ojo: este servicio todavia no tiene autenticacion, asi que cualquiera con acceso al puerto puede cargar stock
+  (pendiente documentado en docs/seguridad-pendiente.md).
+}

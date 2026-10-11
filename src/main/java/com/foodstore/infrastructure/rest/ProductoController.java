@@ -4,6 +4,7 @@ import com.foodstore.application.usecase.ActualizarProductoUseCase;
 import com.foodstore.application.usecase.CrearProductoUseCase;
 import com.foodstore.application.usecase.EliminarProductoUseCase;
 import com.foodstore.application.usecase.GenerarDescripcionProductoUseCase;
+import com.foodstore.application.usecase.IngresarStockUseCase;
 import com.foodstore.application.usecase.ListarProductosUseCase;
 import com.foodstore.application.usecase.ObtenerProductoUseCase;
 import com.foodstore.domain.productos.domain.model.CriterioPaginacion;
@@ -18,6 +19,7 @@ import com.foodstore.infrastructure.rest.dto.ProductoDtoMapper;
 import com.foodstore.infrastructure.rest.dto.ProductoRequest;
 import com.foodstore.infrastructure.rest.dto.ProductoResponse;
 import com.foodstore.infrastructure.rest.dto.ProductoUpdateRequest;
+import com.foodstore.infrastructure.rest.dto.StockIngresoRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -49,6 +51,7 @@ public class ProductoController {
     private final ActualizarProductoUseCase actualizarProductoUseCase;
     private final EliminarProductoUseCase eliminarProductoUseCase;
     private final GenerarDescripcionProductoUseCase generarDescripcionProductoUseCase;
+    private final IngresarStockUseCase ingresarStockUseCase;
     private final ProductoDtoMapper productoDtoMapper;
 
     @PostMapping
@@ -89,6 +92,14 @@ public class ProductoController {
     public ResponseEntity<Void> eliminar(@PathVariable String id) {
         eliminarProductoUseCase.execute(ProductoId.de(id));
         return ResponseEntity.noContent().build();
+    }
+
+    /** Llegada de mercaderia: suma unidades al stock (unica forma de que un producto tenga stock). */
+    @PostMapping("/{id}/stock/ingresos")
+    public ResponseEntity<ProductoResponse> ingresarStock(
+            @PathVariable String id, @Valid @RequestBody StockIngresoRequest request) {
+        Producto actualizado = ingresarStockUseCase.execute(ProductoId.de(id), request.unidades());
+        return ResponseEntity.ok(productoDtoMapper.toResponse(actualizado));
     }
 
     @PostMapping("/generar-descripcion")

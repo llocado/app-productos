@@ -1,0 +1,29 @@
+meta {
+  name: 10 - Ingresar Stock - unidades invalidas
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/productos/{{idProducto}}/stock/ingresos
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "unidades": 0
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+docs {
+  Cero unidades (o un numero negativo, o mas de 100000) se rechaza con 400 y no cambia el stock.
+}

@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://supermercado.local/schemas/stock.descuento-rechazado.v1.json",
+  "title": "stock.descuento-rechazado",
+  "description": "Publicado cuando un pago aprobado no pudo descontar el stock porque algun producto no alcanzo (o ya no existe o esta inactivo). No se descuenta nada. pedidos-service pasa el pedido de PAGADO a SIN_STOCK para su gestion manual.",
+  "type": "object",
+  "required": [
+    "eventId",
+    "eventType",
+    "eventVersion",
+    "occurredAt",
+    "producer",
+    "payload"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "const": "stock.descuento-rechazado"
+    },
+    "eventVersion": {
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "producer": {
+      "const": "app-productos"
+    },
+    "correlationId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    },
+    "payload": {
+      "type": "object",
+      "required": [
+        "pagoId",
+        "pedidoId",
+        "usuarioId",
+        "faltantes"
+      ],
+      "properties": {
+        "pagoId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "pedidoId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "usuarioId": {
+          "type": "string"
+        },
+        "faltantes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "productoId",
+              "solicitado",
+              "disponible"
+            ],
+            "properties": {
+              "productoId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "solicitado": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "disponible": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

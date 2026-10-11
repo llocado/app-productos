@@ -1,12 +1,5 @@
 package com.foodstore.infrastructure.rest;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.foodstore.domain.productos.application.port.ProductoRepositoryPort;
 import com.foodstore.domain.productos.domain.model.CategoriaId;
@@ -29,12 +22,20 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -51,6 +52,9 @@ import tools.jackson.databind.ObjectMapper;
 @AutoConfigureMockMvc
 @Testcontainers
 @Transactional
+// Esta suite no levanta RabbitMQ: el listener no arranca y el puerto invalido garantiza que, pase lo que pase,
+// nunca se conecte al RabbitMQ de desarrollo (declararia colas ni consumiria eventos reales).
+@TestPropertySource(properties = {"spring.rabbitmq.listener.simple.auto-startup=false", "spring.rabbitmq.port=1"})
 class ProductosIntegrationTest {
 
     private static final String CATEGORIA_ID = "b6f3c1e0-2a3b-4c5d-8e9f-0a1b2c3d4e5f";
@@ -256,5 +260,47 @@ class ProductosIntegrationTest {
                 Precio.de(new BigDecimal(monto), Currency.getInstance(moneda)),
                 CategoriaId.de(CATEGORIA_ID)
         );
+    }
+
+    // ---------------------------------------------------------------
+    // Ingreso de stock (POST /{id}/stock/ingresos) -> el stock queda guardado y se suma
+    // ---------------------------------------------------------------
+    @Test
+    void ingresarStock_DeberiaSumarYPersistirElStock_EnPostgres() throws Exception {
+        ProductoRequest request = new ProductoRequest(
+                "SKU-INT-STOCK", "Leche Entera", "1 litro", new BigDecimal("1100"), "CLP", CATEGORIA_ID);
+        MvcResult creado = mockMvc.perform(post("/api/productos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        ProductoResponse producto = objectMapper.readValue(creado.getResponse().getContentAsString(), ProductoResponse.class);
+
+        mockMvc.perform(post("/api/productos/{id}/stock/ingresos", producto.id())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"unidades\": 25}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stock").value(25));
+        mockMvc.perform(post("/api/productos/{id}/stock/ingresos", producto.id())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"unidades\": 5}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stock").value(30));
+
+        mockMvc.perform(get("/api/productos/{id}", producto.id()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stock").value(30));
+    }
+
+    @Test
+    void ingresarStock_DeberiaRetornar404_CuandoElProductoNoExiste() throws Exception {
+        mockMvc.perform(post("/api/productos/{id}/stock/ingresos", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"unidades\": 5}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void ingresarStock_DeberiaRetornar400_CuandoLasUnidadesSonInvalidas() throws Exception {
+        mockMvc.perform(post("/api/productos/{id}/stock/ingresos", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"unidades\": 0}"))
+                .andExpect(status().isBadRequest());
     }
 }

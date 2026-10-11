@@ -1,0 +1,29 @@
+meta {
+  name: 11 - Ingresar Stock - producto no encontrado
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/productos/00000000-0000-0000-0000-000000000000/stock/ingresos
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "unidades": 5
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  Un id que no existe responde 404, igual que el resto de los endpoints por id.
+}

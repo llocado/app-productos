@@ -19,22 +19,22 @@ import org.springframework.stereotype.Component;
 @Component
 public class ProductoEntityMapper {
 
-    public ProductoEntity toEntity(Producto producto) {
-        if (producto == null) {
-            return null;
-        }
+    /**
+     * Vuelca el estado del agregado sobre una entidad JPA ya gestionada (o recien creada). No se construye una
+     * entidad nueva en cada guardado: con @Version, una entidad sin version se tomaria como nueva y el UPDATE
+     * se convertiria en un INSERT duplicado.
+     */
+    public void volcarEnEntidad(Producto producto, ProductoEntity entity) {
         CategoriaId categoriaId = producto.getCategoriaId();
-        return ProductoEntity.builder()
-                .id(producto.getId().getValor())
-                .sku(producto.getSku().getValor())
-                .nombre(producto.getNombre())
-                .descripcion(producto.getDescripcion())
-                .precioMonto(producto.getPrecio().getMonto())
-                .precioMoneda(producto.getPrecio().getMoneda().getCurrencyCode())
-                .stock(producto.getStock().getCantidad())
-                .categoriaId(categoriaId != null ? categoriaId.getValor() : null)
-                .activo(producto.isActivo())
-                .build();
+        entity.setId(producto.getId().getValor());
+        entity.setSku(producto.getSku().getValor());
+        entity.setNombre(producto.getNombre());
+        entity.setDescripcion(producto.getDescripcion());
+        entity.setPrecioMonto(producto.getPrecio().getMonto());
+        entity.setPrecioMoneda(producto.getPrecio().getMoneda().getCurrencyCode());
+        entity.setStock(producto.getStock().getCantidad());
+        entity.setCategoriaId(categoriaId != null ? categoriaId.getValor() : null);
+        entity.setActivo(producto.isActivo());
     }
 
     public Producto toDomain(ProductoEntity entity) {

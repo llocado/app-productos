@@ -33,7 +33,11 @@ public class ProductoPersistenceAdapter implements ProductoRepositoryPort {
 
     @Override
     public Producto guardar(Producto producto) {
-        ProductoEntity entity = productoEntityMapper.toEntity(producto);
+        // Se busca la entidad ya gestionada (si existe) y se vuelca encima el dominio: asi @Version conserva la
+        // version leida al inicio de la transaccion y un escritor concurrente no pisa en silencio al otro.
+        ProductoEntity entity = springDataProductoRepository.findById(producto.getId().getValor())
+                .orElseGet(ProductoEntity::new);
+        productoEntityMapper.volcarEnEntidad(producto, entity);
         ProductoEntity guardado = springDataProductoRepository.save(entity);
         return productoEntityMapper.toDomain(guardado);
     }

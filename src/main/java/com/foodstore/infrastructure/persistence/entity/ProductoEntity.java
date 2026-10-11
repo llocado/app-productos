@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.math.BigDecimal;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -25,6 +26,15 @@ public class ProductoEntity {
     // (Producto.crear() -> ProductoId.nuevo()), la entidad solo lo persiste.
     @Id
     private UUID id;
+
+    /**
+     * Bloqueo optimista: el UPDATE lleva "where version = ?". Si otra transaccion modifico el producto (por ejemplo
+     * otro pago descontando el mismo stock) despues de que esta lo leyo, falla con OptimisticLockingFailureException
+     * en vez de pisar el cambio. Es Long (no long) para que una entidad nueva (version nula) se inserte con persist.
+     */
+    @Version
+    @Column(nullable = false)
+    private Long version;
 
     @Column(nullable = false, unique = true, length = 50)
     private String sku;

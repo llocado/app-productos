@@ -1,3 +1,7 @@
 databaseChangeLog:
   - include:
       file: db/changelog/changes/001-crear-tabla-productos.yaml
+  - include:
+      file: db/changelog/changes/002-agregar-version-a-productos.yaml
+  - include:
+      file: db/changelog/changes/003-crear-tablas-eventos.yaml

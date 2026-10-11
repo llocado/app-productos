@@ -1,0 +1,27 @@
+meta {
+  name: 13 - Verificar stock descontado
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/api/productos/{{idProducto}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.stock: eq 25
+}
+
+script:pre-request {
+  // El descuento lo hace un listener de forma asincrona: se espera un instante antes de consultar.
+  await bru.sleep(2000);
+}
+
+docs {
+  Despues de "09 - Ingresar Stock" (40) y "12 - Publicar pago.aprobado" (compra 15), el stock debe ser 25. Si sigue
+  en 40, el listener no proceso el evento (revisa los logs de app-productos y la cola `productos.pago-aprobado` en la
+  UI de RabbitMQ). Si corriste "09" o "12" mas de una vez, el numero esperado cambia.
+}

@@ -19,6 +19,7 @@ import com.foodstore.application.usecase.ActualizarProductoUseCase;
 import com.foodstore.application.usecase.CrearProductoUseCase;
 import com.foodstore.application.usecase.EliminarProductoUseCase;
 import com.foodstore.application.usecase.GenerarDescripcionProductoUseCase;
+import com.foodstore.application.usecase.IngresarStockUseCase;
 import com.foodstore.application.usecase.ListarProductosUseCase;
 import com.foodstore.application.usecase.ObtenerProductoUseCase;
 import com.foodstore.domain.productos.domain.exception.ProductoNoEncontradoException;
@@ -33,6 +34,7 @@ import com.foodstore.infrastructure.rest.dto.GenerarDescripcionRequest;
 import com.foodstore.infrastructure.rest.dto.ProductoDtoMapper;
 import com.foodstore.infrastructure.rest.dto.ProductoRequest;
 import com.foodstore.infrastructure.rest.dto.ProductoUpdateRequest;
+import com.foodstore.infrastructure.rest.dto.StockIngresoRequest;
 import java.math.BigDecimal;
 import java.util.Currency;
 import java.util.List;
@@ -42,6 +44,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
@@ -81,6 +84,9 @@ class ProductoControllerTest {
 
     @MockitoBean
     private GenerarDescripcionProductoUseCase generarDescripcionProductoUseCase;
+
+    @MockitoBean
+    private IngresarStockUseCase ingresarStockUseCase;
 
     @Test
     void crear_DeberiaRetornar201YElProductoCreado_CuandoElRequestEsValido() throws Exception {
@@ -304,6 +310,67 @@ class ProductoControllerTest {
                 .andExpect(status().isBadRequest());
 
         verify(generarDescripcionProductoUseCase, never()).execute(any(), any());
+    }
+
+    @Test
+    void ingresarStock_DeberiaRetornar200ConElStockNuevo_CuandoLasUnidadesSonValidas() throws Exception {
+        Producto producto = crearProducto();
+        producto.aumentarStock(40);
+        when(ingresarStockUseCase.execute(eq(producto.getId()), eq(40))).thenReturn(producto);
+
+        mockMvc.perform(post("/api/productos/{id}/stock/ingresos", producto.getId().getValor())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new StockIngresoRequest(40))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stock").value(40));
+    }
+
+    @Test
+    void ingresarStock_DeberiaRetornar400_CuandoLasUnidadesSonCeroNegativasOExcedenElTope() throws Exception {
+        UUID id = UUID.randomUUID();
+        for (int unidades : new int[] {0, -5, 100001}) {
+            mockMvc.perform(post("/api/productos/{id}/stock/ingresos", id)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new StockIngresoRequest(unidades))))
+                    .andExpect(status().isBadRequest());
+        }
+        verify(ingresarStockUseCase, never()).execute(any(), org.mockito.ArgumentMatchers.anyInt());
+    }
+
+    @Test
+    void ingresarStock_DeberiaAceptarLosLimitesExactos_1Y100000() throws Exception {
+        Producto producto = crearProducto();
+        when(ingresarStockUseCase.execute(any(ProductoId.class), org.mockito.ArgumentMatchers.anyInt())).thenReturn(producto);
+
+        for (int unidades : new int[] {1, 100000}) {
+            mockMvc.perform(post("/api/productos/{id}/stock/ingresos", producto.getId().getValor())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new StockIngresoRequest(unidades))))
+                    .andExpect(status().isOk());
+        }
+    }
+
+    @Test
+    void ingresarStock_DeberiaRetornar404_CuandoElProductoNoExiste() throws Exception {
+        when(ingresarStockUseCase.execute(any(ProductoId.class), org.mockito.ArgumentMatchers.anyInt()))
+                .thenThrow(new ProductoNoEncontradoException("Producto no encontrado: x"));
+
+        mockMvc.perform(post("/api/productos/{id}/stock/ingresos", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new StockIngresoRequest(5))))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void ingresarStock_DeberiaRetornar409ConMensajeFijo_CuandoOtroProcesoModificoElProductoALaVez() throws Exception {
+        when(ingresarStockUseCase.execute(any(ProductoId.class), org.mockito.ArgumentMatchers.anyInt()))
+                .thenThrow(new ObjectOptimisticLockingFailureException("ProductoEntity", UUID.randomUUID()));
+
+        mockMvc.perform(post("/api/productos/{id}/stock/ingresos", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new StockIngresoRequest(5))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensaje").value("El producto cambio mientras se procesaba tu peticion. Intenta de nuevo."));
     }
 
     private Producto crearProducto() {

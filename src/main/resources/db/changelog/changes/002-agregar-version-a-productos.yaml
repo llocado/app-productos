@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-agregar-version-a-productos
+      author: supermercado
+      changes:
+        # Bloqueo optimista: dos escritores concurrentes sobre el mismo producto (por ejemplo, dos pagos que
+        # descuentan el mismo stock) ya no se pisan en silencio; el segundo en confirmar falla.
+        - addColumn:
+            tableName: productos
+            columns:
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false

@@ -1,0 +1,67 @@
+meta {
+  name: 12 - Publicar pago.aprobado (descuenta stock)
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{rabbitmqManagementUrl}}/api/exchanges/%2F/pagos.events/publish
+  body: json
+  auth: basic
+}
+
+auth:basic {
+  username: supermercado
+  password: supermercado
+}
+
+body:json {
+  {}
+}
+
+assert {
+  res.status: eq 200
+  res.body.routed: eq true
+}
+
+script:pre-request {
+  // Publica un pago.aprobado de prueba que compra 15 unidades del producto "idProducto", por la API HTTP de RabbitMQ.
+  // (En el sandbox de Bruno crypto.randomUUID no existe: se usa la libreria uuid incluida.)
+  const { v4: uuid } = require("uuid");
+  const envelope = {
+    eventId: uuid(),
+    eventType: "pago.aprobado",
+    eventVersion: 1,
+    occurredAt: new Date().toISOString(),
+    producer: "bruno",
+    correlationId: uuid(),
+    payload: {
+      pagoId: uuid(),
+      pedidoId: uuid(),
+      carritoId: uuid(),
+      usuarioId: "usuario-bruno",
+      monto: 18000,
+      moneda: "CLP",
+      items: [{ productoId: bru.getVar("idProducto"), cantidad: 15 }]
+    }
+  };
+  req.setBody({
+    properties: { content_type: "application/json" },
+    routing_key: "pago.aprobado",
+    payload: JSON.stringify(envelope),
+    payload_encoding: "string"
+  });
+}
+
+docs {
+  Publica, por la API HTTP de RabbitMQ ({{rabbitmqManagementUrl}}, usuario de desarrollo de supermercado-infra), un
+  `pago.aprobado` que compra 15 unidades del producto de prueba. `routed: true` confirma que alguna cola lo recibio;
+  el descuento es asincrono: mira "13 - Verificar stock descontado". Requiere app-productos corriendo.
+
+  Con el stock de "09 - Ingresar Stock" (40) alcanza: el stock queda en 25 y no se publica ningun evento. Si no
+  alcanzara, no se descontaria nada y app-productos publicaria `stock.descuento-rechazado`.
+
+  Ojo: el pedido es inventado y no existe en pedidos-service, asi que el mismo `pago.aprobado` terminara en
+  `pedidos.pago-aprobado.dlq` tras 1 intento + 3 reintentos (esperado). Para limpiarla:
+  `supermercado-infra/scripts/reset-datos-dev.sh --servicio pedidos`.
+}

@@ -16,6 +16,9 @@ propósito: es interno y no se publica por ahora — nunca agregarlo a un commit
   Packages como repositorio Maven, pero el build tool es Gradle).
 - Postgres 16 (contenedor `foodstore-postgres`, puerto **5432**).
 - Liquibase para esquema.
+- RabbitMQ (vía `supermercado-infra`): **consume** `pago.aprobado` (cola `productos.pago-aprobado` + DLQ) para
+  descontar el stock y **publica** `stock.descuento-rechazado` (exchange `productos.events`, con *outbox*) cuando
+  no alcanza. Contrato en `docs/events/`.
 - Spring AI (`spring-ai-starter-model-anthropic`) para generar descripciones
   de producto — **sin API key configurada a propósito**, no gastar en eso
   salvo que el usuario lo pida explícitamente.
@@ -26,7 +29,7 @@ propósito: es interno y no se publica por ahora — nunca agregarlo a un commit
 
 ```bash
 docker compose up -d      # Postgres de este servicio
-./gradlew bootRun          # arranca en localhost:8080
+./gradlew bootRun          # arranca en localhost:8080 (requiere supermercado-infra: RabbitMQ)
 ./gradlew test             # unitarios
 ./gradlew intTest          # integración (Testcontainers, requiere Docker)
 ./gradlew jacocoFullReport   # cobertura test + intTest -> build/reports/jacoco/jacocoFullReport/index.html
@@ -52,3 +55,23 @@ docker compose up -d      # Postgres de este servicio
 - CRUD completo de productos + paginación (`Pagina`, `CriterioPaginacion`,
   `listarPaginado` vienen de `lib-domain-foods`).
 - Endpoint de generación de descripción vía IA, aislado del resto del CRUD.
+- **Stock (único dueño: este servicio).** Un producto nace con stock 0; `POST /api/productos/{id}/stock/ingresos`
+  (`{"unidades": 1..100000}`) suma unidades y es la única forma de cargarlo. Al aprobarse un pago
+  (`pago.aprobado`) se descuenta **todo o nada** (`DescontarStockPorPagoUseCase`): primero se valida cada
+  producto y solo si todos alcanzan se descuenta; si falta alguno (o está inactivo/no existe) no se toca nada y se
+  publica `stock.descuento-rechazado`, que `pedidos-service` convierte en pedido `SIN_STOCK`. Idempotente por
+  `eventId` (`eventos_procesados`). No hay reserva: puede haber más carritos que unidades hasta que se paga.
+- **Bloqueo optimista en `ProductoEntity` (`@Version`, columna `productos.version`).** Dos pagos que compiten por la
+  última unidad: uno confirma y el otro falla con `OptimisticLockingFailureException`, se reintenta (1 + 3) y ve el
+  stock nuevo. Por eso `ProductoPersistenceAdapter.guardar` **carga la entidad gestionada y vuelca encima** (no
+  construye una entidad nueva: con `@Version` una entidad sin versión se tomaría como nueva). Todo caso de uso que
+  escriba el stock debe ser `@Transactional`.
+- **Dominio y descuento:** el dominio (`Producto.reducirStock/aumentarStock`, `Stock`) vive en `lib-domain-foods`; la
+  lógica de descuento por pago es de este servicio, no de la librería.
+- `scripts/datos-prueba-productos.json` trae `stockInicial` por producto: no hay cargador automático, al importarlo hay
+  que crear el producto y luego llamar al endpoint de ingreso.
+- **Credenciales de GitHub Packages:** `lib-domain-foods` se resuelve con `gprUser`/`gprKey` (`gradle.properties`,
+  fuera de git). Si GitHub responde `401`, el token venció: regenerarlo. Mientras tanto `./gradlew --offline ...`
+  usa la copia en caché.
+- Los tests que no levantan RabbitMQ fijan `spring.rabbitmq.listener.simple.auto-startup=false` y
+  `spring.rabbitmq.port=1`, para no conectarse nunca al broker de desarrollo.
