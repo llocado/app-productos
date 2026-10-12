@@ -15,8 +15,8 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * Guarda el evento (envelope completo en JSON) en eventos_salida, dentro de la transaccion del caso de uso que
- * llama. El eventId es determinista (tipo + pagoId): registrar dos veces el mismo evento colisiona en la clave
- * primaria en vez de duplicarlo.
+ * llama. El eventId es determinista (tipo + pagoId): registrar dos veces el mismo evento falla por la clave
+ * primaria en vez de duplicarlo ni sobrescribir la fila (EventoSalidaEntity es Persistable para que sea persist, no merge).
  */
 @Component
 @RequiredArgsConstructor

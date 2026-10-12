@@ -193,11 +193,7 @@ class StockPagosIntegrationTest {
 
         assertThat(stockDe(ultima)).as("una unidad, un solo descuento").isZero();
         // Exactamente uno de los dos pedidos recibe el rechazo.
-        List<UUID> rechazados = new ArrayList<>();
-        for (UUID pedido : List.of(pedidoA, pedidoB)) {
-            if (hayEventoDe(pedido)) rechazados.add(pedido);
-        }
-        assertThat(rechazados).hasSize(1);
+        assertThat(pedidosConRechazo(List.of(pedidoA, pedidoB))).hasSize(1);
     }
 
     @Test
@@ -286,6 +282,24 @@ class StockPagosIntegrationTest {
             if (objectMapper.readTree(json).get("payload").get("pedidoId").asString().equals(pedidoId.toString())) return json;
         }
         throw new AssertionError("No llego ningun evento para el pedido " + pedidoId);
+    }
+
+    /** Lee la cola de prueba una sola vez (sin descartar mensajes de otros pedidos) y devuelve los pedidos rechazados. */
+    private List<UUID> pedidosConRechazo(List<UUID> candidatos) {
+        List<UUID> rechazados = new ArrayList<>();
+        long limite = System.currentTimeMillis() + 5_000;
+        while (System.currentTimeMillis() < limite) {
+            // Con un rechazo ya visto, solo se espera un poco mas por si llegara uno de mas.
+            Message m = rabbitTemplate.receive(colaDePrueba, rechazados.isEmpty() ? 500 : 1_500);
+            if (m == null) {
+                if (rechazados.isEmpty()) continue;
+                break;
+            }
+            String json = new String(m.getBody(), StandardCharsets.UTF_8);
+            UUID pedido = UUID.fromString(objectMapper.readTree(json).get("payload").get("pedidoId").asString());
+            if (candidatos.contains(pedido) && !rechazados.contains(pedido)) rechazados.add(pedido);
+        }
+        return rechazados;
     }
 
     private boolean hayEventoDe(UUID pedidoId) {
