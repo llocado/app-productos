@@ -68,6 +68,12 @@ spring:
           model: claude-haiku-4-5
           max-tokens: 300
 
+app:
+  cors:
+    # Origenes (separados por coma) cuyas paginas web pueden leer esta API desde el navegador. Por defecto, solo el
+    # servidor de desarrollo de tienda-web. En produccion: el dominio real de la tienda (nunca "*").
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
+
 productos:
   outbox:
     # Cada cuanto el publicador revisa eventos_salida y cuantos eventos toma por vuelta.

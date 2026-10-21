@@ -1,0 +1,28 @@
+meta {
+  name: 17 - Listar Productos - preflight CORS
+  type: http
+  seq: 17
+}
+
+options {
+  url: {{baseUrl}}/api/productos
+  body: none
+  auth: none
+}
+
+headers {
+  Origin: http://localhost:5173
+  Access-Control-Request-Method: GET
+}
+
+assert {
+  res.status: eq 200
+  res.headers["access-control-allow-origin"]: eq http://localhost:5173
+}
+
+docs {
+  Lo que hace el navegador antes de que tienda-web lea el catalogo (preflight CORS): pregunta con OPTIONS si el origen
+  http://localhost:5173 puede hacer GET. Solo ese origen y solo lectura estan autorizados: con otro Origin, o con
+  Access-Control-Request-Method POST/PUT/DELETE, responde 403 sin la cabecera access-control-allow-origin.
+  El origen permitido se configura con CORS_ORIGINS (app.cors.allowed-origins).
+}

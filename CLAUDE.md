@@ -50,6 +50,11 @@ docker compose up -d      # Postgres de este servicio
   pusheado — seguir Conventional Commits en español de acá en adelante (ver
   reglas generales), aunque el historial previo no las siga.
 
+- **CORS para `tienda-web`** (`config/CorsConfig`, propiedad `app.cors.allowed-origins`, env `CORS_ORIGINS`, por defecto
+  `http://localhost:5173`): solo ese origen y solo lectura (`GET`, `HEAD`, `OPTIONS`) en `/api/**`; nunca `*`; las escrituras no se
+  abren a ningún navegador. Es para desarrollo: en producción va el dominio real o un gateway. Si cambia el puerto del front,
+  cambiar esta propiedad. Probado con `CorsConfigTest` y el request de Bruno `17`.
+
 ## Convenciones propias de este servicio
 
 - CRUD completo de productos + paginación (`Pagina`, `CriterioPaginacion`,
