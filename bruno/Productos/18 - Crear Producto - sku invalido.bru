@@ -1,0 +1,36 @@
+meta {
+  name: 18 - Crear Producto - sku invalido
+  type: http
+  seq: 18
+}
+
+post {
+  url: {{baseUrl}}/api/productos
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "sku": "ESTE-SKU-ES-DEMASIADO-LARGO",
+    "nombre": "Producto con SKU invalido",
+    "precioMonto": 1000,
+    "moneda": "CLP",
+    "categoriaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+docs {
+  SKU de 26 caracteres (el maximo es 20; tambien se rechazan otros caracteres que no sean letras, digitos o guiones, y
+  menos de 3). Antes devolvia 500 porque la regla solo estaba en el dominio; ahora ProductoRequest la valida y responde
+  400. No crea nada, asi que no necesita limpieza. Mismo criterio: nombre de mas de 150 caracteres y categoriaId que no
+  sea un UUID tambien dan 400.
+}

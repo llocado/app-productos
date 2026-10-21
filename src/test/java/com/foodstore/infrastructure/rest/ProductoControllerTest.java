@@ -141,6 +141,48 @@ class ProductoControllerTest {
     }
 
     @Test
+    void crear_DeberiaRetornar400_CuandoElSkuEsInvalido() throws Exception {
+        // 21 caracteres, caracter no permitido, muy corto y empezando con guion: el dominio los rechaza, la API debe dar 400 (no 500).
+        for (String skuInvalido : new String[] {"A".repeat(21), "SKU_001", "AB", "-ABC"}) {
+            ProductoRequest request = new ProductoRequest(skuInvalido, "Manzana", null, new BigDecimal("1000"), "CLP", CATEGORIA_ID);
+
+            mockMvc.perform(post("/api/productos")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+        verify(crearProductoUseCase, never()).execute(any(ProductoRequest.class));
+    }
+
+    @Test
+    void crear_DeberiaAceptarSkuEnLosLimites_3Y20Caracteres() throws Exception {
+        when(crearProductoUseCase.execute(any(ProductoRequest.class))).thenReturn(crearProducto());
+
+        for (String sku : new String[] {"ABC", "A".repeat(20)}) {
+            ProductoRequest request = new ProductoRequest(sku, "Manzana", null, new BigDecimal("1000"), "CLP", CATEGORIA_ID);
+
+            mockMvc.perform(post("/api/productos")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated());
+        }
+    }
+
+    @Test
+    void crear_DeberiaRetornar400_CuandoElNombreSuperaLosLimitesOLaCategoriaNoEsUuid() throws Exception {
+        ProductoRequest nombreLargo = new ProductoRequest("SKU-001", "N".repeat(151), null, new BigDecimal("1000"), "CLP", CATEGORIA_ID);
+        ProductoRequest categoriaInvalida = new ProductoRequest("SKU-001", "Manzana", null, new BigDecimal("1000"), "CLP", "no-es-un-uuid");
+
+        for (ProductoRequest request : new ProductoRequest[] {nombreLargo, categoriaInvalida}) {
+            mockMvc.perform(post("/api/productos")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+        verify(crearProductoUseCase, never()).execute(any(ProductoRequest.class));
+    }
+
+    @Test
     void listar_DeberiaRetornar200YLaPaginaDeProductos_ConLosParametrosPorDefecto() throws Exception {
         Producto producto = crearProducto();
         Pagina<Producto> pagina = Pagina.de(List.of(producto), 0, 20, 1);
