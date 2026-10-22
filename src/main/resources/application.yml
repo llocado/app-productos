@@ -25,6 +25,10 @@ spring:
         format_sql: true
 
   # Migraciones de esquema versionadas con Liquibase.
+  jackson:
+    deserialization:
+      # Un 1.5 en un campo entero es un error del cliente: sin esto Jackson lo trunca en silencio a 1.
+      accept-float-as-int: false
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
 

@@ -303,4 +303,23 @@ class ProductosIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON).content("{\"unidades\": 0}"))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void ingresarStock_DeberiaRetornar400YNoCambiarElStock_CuandoLasUnidadesSonFraccionarias() throws Exception {
+        ProductoRequest request = new ProductoRequest(
+                "SKU-INT-FRAC", "Arroz", "1 kg", new BigDecimal("1500"), "CLP", CATEGORIA_ID);
+        MvcResult creado = mockMvc.perform(post("/api/productos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        ProductoResponse producto = objectMapper.readValue(creado.getResponse().getContentAsString(), ProductoResponse.class);
+
+        mockMvc.perform(post("/api/productos/{id}/stock/ingresos", producto.id())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"unidades\": 1.5}"))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get("/api/productos/{id}", producto.id()))
+                .andExpect(jsonPath("$.stock").value(0));
+    }
 }
