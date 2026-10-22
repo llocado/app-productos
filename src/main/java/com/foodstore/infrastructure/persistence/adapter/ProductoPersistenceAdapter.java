@@ -74,9 +74,14 @@ public class ProductoPersistenceAdapter implements ProductoRepositoryPort {
     public Pagina<Producto> buscarPorNombre(String texto, CriterioPaginacion criterio) {
         Pageable pageable = PageRequest.of(
                 criterio.getPagina(), criterio.getTamano(), Sort.by("nombre").ascending());
-        Page<Producto> pagina = springDataProductoRepository.findByNombreContainingIgnoreCase(texto, pageable)
+        Page<Producto> pagina = springDataProductoRepository.buscarPorNombreSinTildes(patronContiene(texto), pageable)
                 .map(productoEntityMapper::toDomain);
         return Pagina.de(pagina.getContent(), pagina.getNumber(), pagina.getSize(), pagina.getTotalElements());
+    }
+
+    /** "%texto%" con los comodines de LIKE (\\, % y _) escapados: lo que escribe el usuario se busca como texto literal. */
+    private static String patronContiene(String texto) {
+        return "%" + texto.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
     }
 
     @Override

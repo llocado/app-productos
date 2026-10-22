@@ -75,9 +75,12 @@ docker compose up -d      # Postgres de este servicio
   lógica de descuento por pago es de este servicio, no de la librería.
 - `scripts/datos-prueba-productos.json` trae `stockInicial` por producto: no hay cargador automático, al importarlo hay
   que crear el producto y luego llamar al endpoint de ingreso.
-- **Búsqueda por nombre** (`GET /api/productos?nombre=texto`): contiene el texto, sin distinguir mayúsculas, ordenada por nombre y
-  paginada como el listado; `%` y `_` se buscan como texto literal (las consultas derivadas `...ContainingIgnoreCase` los
-  escapan); máximo 100 caracteres. Distingue tildes ("platano" no encuentra "Plátano"): ver `../docs/seguridad-pendiente.md`.
+- **Búsqueda por nombre** (`GET /api/productos?nombre=texto`): contiene el texto, sin distinguir mayúsculas ni tildes
+  ("platano" encuentra "Plátano"; la ñ cuenta como n), ordenada por nombre y paginada como el listado; máximo 100 caracteres.
+  Usa la extensión `unaccent` de Postgres (changelog `004`, `CREATE EXTENSION`) a ambos lados del `LIKE`, en una consulta
+  propia (`buscarPorNombreSinTildes`, con `cast(... as string)` porque Hibernate 7 no infiere el tipo de `function`). El
+  adaptador escapa `\`, `%` y `_` del texto: se buscan literalmente. Sin índice (un `LIKE '%x%'` no lo usa): vale para un
+  catálogo de barrio; si crece mucho, un índice trigram (`pg_trgm`) sobre `unaccent(lower(nombre))`.
 - **Compilar con la librería local (sin GitHub Packages):** `./gradlew --include-build ../lib-domain-foods <tarea>` sustituye la
   dependencia por la carpeta local (mismo `group:name`). Sirve cuando el token venció o la librería tiene cambios sin publicar.
   No descomentar el `includeBuild` de `settings.gradle`: rompería el `Dockerfile`, que no tiene esa carpeta.

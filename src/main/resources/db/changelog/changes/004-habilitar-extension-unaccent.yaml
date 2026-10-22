@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-habilitar-extension-unaccent
+      author: supermercado
+      comment: unaccent quita las tildes al comparar ("platano" encuentra "Plátano"); lo usa la busqueda por nombre.
+      changes:
+        - sql:
+            sql: CREATE EXTENSION IF NOT EXISTS unaccent
+      rollback:
+        - sql:
+            sql: DROP EXTENSION IF EXISTS unaccent

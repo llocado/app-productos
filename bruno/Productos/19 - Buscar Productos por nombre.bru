@@ -34,7 +34,8 @@ docs {
 
   - Sin resultados no es un error: 200 con `contenido: []` y `totalElementos: 0`.
   - `%` y `_` se buscan como texto, no como comodines.
-  - El texto distingue tildes: "platano" NO encuentra "Plátano" (pendiente documentado).
+  - No distingue tildes: "platano" encuentra "Plátano" y "café" encuentra "Cafe" (extension unaccent de Postgres). La ñ cuenta
+    como n: "pina" encuentra "Piña".
   - Maximo 100 caracteres (ver "20 - Buscar Productos - nombre demasiado largo").
   - Este request va despues del 14 (que borra el producto): puede devolver una lista vacia y el test pasa igual.
 }

@@ -360,6 +360,35 @@ class ProductosIntegrationTest {
     }
 
     @Test
+    void listar_DeberiaBuscarSinDistinguirTildes_EnAmbosSentidos() throws Exception {
+        crearProductoParaBusqueda("SKU-TIL-1", "Plátano");
+        crearProductoParaBusqueda("SKU-TIL-2", "Jamón Serrano");
+        crearProductoParaBusqueda("SKU-TIL-3", "Cafe Molido");
+
+        mockMvc.perform(get("/api/productos").param("nombre", "platano"))
+                .andExpect(jsonPath("$.totalElementos").value(1))
+                .andExpect(jsonPath("$.contenido[0].sku").value("SKU-TIL-1"));
+        mockMvc.perform(get("/api/productos").param("nombre", "JAMON"))
+                .andExpect(jsonPath("$.totalElementos").value(1))
+                .andExpect(jsonPath("$.contenido[0].sku").value("SKU-TIL-2"));
+        // Al reves: el usuario escribe la tilde y el nombre guardado no la lleva.
+        mockMvc.perform(get("/api/productos").param("nombre", "café"))
+                .andExpect(jsonPath("$.totalElementos").value(1))
+                .andExpect(jsonPath("$.contenido[0].sku").value("SKU-TIL-3"));
+    }
+
+    @Test
+    void listar_DeberiaTomarLaBarraInversaComoTextoLiteral() throws Exception {
+        crearProductoParaBusqueda("SKU-BAR-1", "Ruta C:\\tmp");
+        crearProductoParaBusqueda("SKU-BAR-2", "Ruta C tmp");
+
+        mockMvc.perform(get("/api/productos").param("nombre", "C:\\"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElementos").value(1))
+                .andExpect(jsonPath("$.contenido[0].sku").value("SKU-BAR-1"));
+    }
+
+    @Test
     void listar_DeberiaListarTodo_CuandoElNombreVieneEnBlanco() throws Exception {
         crearProductoParaBusqueda("SKU-BLA-1", "Pan Molde");
 
