@@ -1,0 +1,23 @@
+meta {
+  name: 20 - Buscar Productos - nombre demasiado largo
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{baseUrl}}/api/productos?nombre=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  body: none
+  auth: none
+}
+
+params:query {
+  nombre: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+}
+
+assert {
+  res.status: eq 400
+}
+
+docs {
+  El texto de busqueda admite como maximo 100 caracteres: 101 se rechaza con 400 (100 exactos si se aceptan).
+}

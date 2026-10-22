@@ -187,7 +187,7 @@ class ProductoControllerTest {
         Producto producto = crearProducto();
         Pagina<Producto> pagina = Pagina.de(List.of(producto), 0, 20, 1);
 
-        when(listarProductosUseCase.execute(any(CriterioPaginacion.class))).thenReturn(pagina);
+        when(listarProductosUseCase.execute(any(CriterioPaginacion.class), any())).thenReturn(pagina);
 
         mockMvc.perform(get("/api/productos"))
                 .andExpect(status().isOk())
@@ -198,7 +198,7 @@ class ProductoControllerTest {
                 .andExpect(jsonPath("$.totalElementos").value(1))
                 .andExpect(jsonPath("$.totalPaginas").value(1));
 
-        verify(listarProductosUseCase).execute(any(CriterioPaginacion.class));
+        verify(listarProductosUseCase).execute(any(CriterioPaginacion.class), any());
     }
 
     @Test
@@ -206,7 +206,32 @@ class ProductoControllerTest {
         mockMvc.perform(get("/api/productos").param("tamano", "101"))
                 .andExpect(status().isBadRequest());
 
-        verify(listarProductosUseCase, never()).execute(any(CriterioPaginacion.class));
+        verify(listarProductosUseCase, never()).execute(any(CriterioPaginacion.class), any());
+    }
+
+    @Test
+    void listar_DeberiaPasarElNombreAlCasoDeUso_CuandoSeIndicaElParametro() throws Exception {
+        Pagina<Producto> pagina = Pagina.de(List.of(crearProducto()), 0, 20, 1);
+        when(listarProductosUseCase.execute(any(CriterioPaginacion.class), eq("manz"))).thenReturn(pagina);
+
+        mockMvc.perform(get("/api/productos").param("nombre", "manz"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.contenido", hasSize(1)));
+
+        verify(listarProductosUseCase).execute(any(CriterioPaginacion.class), eq("manz"));
+    }
+
+    @Test
+    void listar_DeberiaAceptarUnNombreDeExactamente100Caracteres_YRechazarUnoDe101() throws Exception {
+        when(listarProductosUseCase.execute(any(CriterioPaginacion.class), any())).thenReturn(Pagina.de(List.of(), 0, 20, 0));
+
+        mockMvc.perform(get("/api/productos").param("nombre", "a".repeat(100)))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/productos").param("nombre", "a".repeat(101)))
+                .andExpect(status().isBadRequest());
+
+        verify(listarProductosUseCase).execute(any(CriterioPaginacion.class), eq("a".repeat(100)));
+        verify(listarProductosUseCase, never()).execute(any(CriterioPaginacion.class), eq("a".repeat(101)));
     }
 
     @Test

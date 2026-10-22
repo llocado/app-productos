@@ -75,6 +75,12 @@ docker compose up -d      # Postgres de este servicio
   lógica de descuento por pago es de este servicio, no de la librería.
 - `scripts/datos-prueba-productos.json` trae `stockInicial` por producto: no hay cargador automático, al importarlo hay
   que crear el producto y luego llamar al endpoint de ingreso.
+- **Búsqueda por nombre** (`GET /api/productos?nombre=texto`): contiene el texto, sin distinguir mayúsculas, ordenada por nombre y
+  paginada como el listado; `%` y `_` se buscan como texto literal (las consultas derivadas `...ContainingIgnoreCase` los
+  escapan); máximo 100 caracteres. Distingue tildes ("platano" no encuentra "Plátano"): ver `../docs/seguridad-pendiente.md`.
+- **Compilar con la librería local (sin GitHub Packages):** `./gradlew --include-build ../lib-domain-foods <tarea>` sustituye la
+  dependencia por la carpeta local (mismo `group:name`). Sirve cuando el token venció o la librería tiene cambios sin publicar.
+  No descomentar el `includeBuild` de `settings.gradle`: rompería el `Dockerfile`, que no tiene esa carpeta.
 - **Credenciales de GitHub Packages:** `lib-domain-foods` se resuelve con `gprUser`/`gprKey` (`gradle.properties`,
   fuera de git). Si GitHub responde `401`, el token venció: regenerarlo. Mientras tanto `./gradlew --offline ...`
   usa la copia en caché.

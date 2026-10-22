@@ -1,6 +1,8 @@
 package com.foodstore.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -44,7 +46,7 @@ class ListarProductosUseCaseTest {
 
         when(productoRepositoryPort.listarPaginado(criterio)).thenReturn(pagina);
 
-        Pagina<Producto> resultado = listarProductosUseCase.execute(criterio);
+        Pagina<Producto> resultado = listarProductosUseCase.execute(criterio, null);
 
         assertThat(resultado.getContenido()).containsExactly(producto1, producto2);
         assertThat(resultado.getTotalElementos()).isEqualTo(2);
@@ -58,10 +60,45 @@ class ListarProductosUseCaseTest {
 
         when(productoRepositoryPort.listarPaginado(criterio)).thenReturn(paginaVacia);
 
-        Pagina<Producto> resultado = listarProductosUseCase.execute(criterio);
+        Pagina<Producto> resultado = listarProductosUseCase.execute(criterio, null);
 
         assertThat(resultado.getContenido()).isEmpty();
         verify(productoRepositoryPort).listarPaginado(criterio);
+    }
+
+    @Test
+    void execute_DeberiaBuscarPorNombre_CuandoSeIndicaUnTexto() {
+        Producto leche = crearProducto("SKU-003", "Leche Entera");
+        CriterioPaginacion criterio = CriterioPaginacion.de(0, 20);
+        Pagina<Producto> pagina = Pagina.de(List.of(leche), 0, 20, 1);
+        when(productoRepositoryPort.buscarPorNombre("lech", criterio)).thenReturn(pagina);
+
+        Pagina<Producto> resultado = listarProductosUseCase.execute(criterio, "lech");
+
+        assertThat(resultado.getContenido()).containsExactly(leche);
+        verify(productoRepositoryPort).buscarPorNombre("lech", criterio);
+        verify(productoRepositoryPort, never()).listarPaginado(criterio);
+    }
+
+    @Test
+    void execute_DeberiaQuitarLosEspaciosDelTexto_AntesDeBuscar() {
+        CriterioPaginacion criterio = CriterioPaginacion.de(0, 20);
+        when(productoRepositoryPort.buscarPorNombre("lech", criterio)).thenReturn(Pagina.de(List.of(), 0, 20, 0));
+
+        listarProductosUseCase.execute(criterio, "  lech  ");
+
+        verify(productoRepositoryPort).buscarPorNombre("lech", criterio);
+    }
+
+    @Test
+    void execute_DeberiaListarTodo_CuandoElTextoEstaEnBlanco() {
+        CriterioPaginacion criterio = CriterioPaginacion.de(0, 20);
+        when(productoRepositoryPort.listarPaginado(criterio)).thenReturn(Pagina.de(List.of(), 0, 20, 0));
+
+        listarProductosUseCase.execute(criterio, "   ");
+
+        verify(productoRepositoryPort).listarPaginado(criterio);
+        verify(productoRepositoryPort, never()).buscarPorNombre(any(), any());
     }
 
     private Producto crearProducto(String sku, String nombre) {

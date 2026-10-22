@@ -71,6 +71,15 @@ public class ProductoPersistenceAdapter implements ProductoRepositoryPort {
     }
 
     @Override
+    public Pagina<Producto> buscarPorNombre(String texto, CriterioPaginacion criterio) {
+        Pageable pageable = PageRequest.of(
+                criterio.getPagina(), criterio.getTamano(), Sort.by("nombre").ascending());
+        Page<Producto> pagina = springDataProductoRepository.findByNombreContainingIgnoreCase(texto, pageable)
+                .map(productoEntityMapper::toDomain);
+        return Pagina.de(pagina.getContent(), pagina.getNumber(), pagina.getSize(), pagina.getTotalElements());
+    }
+
+    @Override
     public boolean existePorSku(Sku sku) {
         return springDataProductoRepository.existsBySku(sku.getValor());
     }

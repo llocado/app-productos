@@ -13,7 +13,11 @@ public final class ListarProductosUseCase {
 
     private final ProductoRepositoryPort productoRepositoryPort;
 
-    public Pagina<Producto> execute(CriterioPaginacion criterio) {
-        return productoRepositoryPort.listarPaginado(criterio);
+    /** Sin nombre (nulo o en blanco) lista todo el catalogo; con nombre, solo los productos que lo contienen. */
+    public Pagina<Producto> execute(CriterioPaginacion criterio, String nombre) {
+        if (nombre == null || nombre.isBlank()) {
+            return productoRepositoryPort.listarPaginado(criterio);
+        }
+        return productoRepositoryPort.buscarPorNombre(nombre.trim(), criterio);
     }
 }

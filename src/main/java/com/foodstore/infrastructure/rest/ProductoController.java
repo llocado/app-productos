@@ -23,6 +23,7 @@ import com.foodstore.infrastructure.rest.dto.StockIngresoRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -64,8 +65,9 @@ public class ProductoController {
     @GetMapping
     public ResponseEntity<PaginaResponse<ProductoResponse>> listar(
             @RequestParam(defaultValue = "0") @Min(0) int pagina,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int tamano) {
-        Pagina<Producto> resultado = listarProductosUseCase.execute(CriterioPaginacion.de(pagina, tamano));
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int tamano,
+            @RequestParam(required = false) @Size(max = 100) String nombre) {
+        Pagina<Producto> resultado = listarProductosUseCase.execute(CriterioPaginacion.de(pagina, tamano), nombre);
         return ResponseEntity.ok(PaginaResponse.de(resultado, productoDtoMapper::toResponse));
     }
 

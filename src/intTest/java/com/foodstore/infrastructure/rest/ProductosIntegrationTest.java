@@ -322,4 +322,57 @@ class ProductosIntegrationTest {
         mockMvc.perform(get("/api/productos/{id}", producto.id()))
                 .andExpect(jsonPath("$.stock").value(0));
     }
+
+    // ---------------------------------------------------------------
+    // Busqueda por nombre (GET /api/productos?nombre=) contra Postgres real
+    // ---------------------------------------------------------------
+    @Test
+    void listar_DeberiaBuscarPorNombreParcialYSinDistinguirMayusculas() throws Exception {
+        crearProductoParaBusqueda("SKU-BUS-1", "Leche Entera");
+        crearProductoParaBusqueda("SKU-BUS-2", "Leche Descremada");
+        crearProductoParaBusqueda("SKU-BUS-3", "Manzana Fuji");
+
+        mockMvc.perform(get("/api/productos").param("nombre", "LECH"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElementos").value(2))
+                .andExpect(jsonPath("$.contenido[0].nombre").value("Leche Descremada"))
+                .andExpect(jsonPath("$.contenido[1].nombre").value("Leche Entera"));
+        mockMvc.perform(get("/api/productos").param("nombre", "zana f"))
+                .andExpect(jsonPath("$.totalElementos").value(1))
+                .andExpect(jsonPath("$.contenido[0].sku").value("SKU-BUS-3"));
+        mockMvc.perform(get("/api/productos").param("nombre", "no-existe-nada"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElementos").value(0))
+                .andExpect(jsonPath("$.contenido").isEmpty());
+    }
+
+    @Test
+    void listar_DeberiaTomarLosComodinesDeLikeComoTextoLiteral() throws Exception {
+        crearProductoParaBusqueda("SKU-LIT-1", "Oferta 50% descuento");
+        crearProductoParaBusqueda("SKU-LIT-2", "Oferta 50 unidades");
+
+        // "%" suelto como comodin encontraria los dos; como texto literal solo el que lo trae escrito.
+        mockMvc.perform(get("/api/productos").param("nombre", "50%"))
+                .andExpect(jsonPath("$.totalElementos").value(1))
+                .andExpect(jsonPath("$.contenido[0].sku").value("SKU-LIT-1"));
+        mockMvc.perform(get("/api/productos").param("nombre", "Oferta_50"))
+                .andExpect(jsonPath("$.totalElementos").value(0));
+    }
+
+    @Test
+    void listar_DeberiaListarTodo_CuandoElNombreVieneEnBlanco() throws Exception {
+        crearProductoParaBusqueda("SKU-BLA-1", "Pan Molde");
+
+        mockMvc.perform(get("/api/productos").param("nombre", "  "))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElementos").value(1));
+    }
+
+    private void crearProductoParaBusqueda(String sku, String nombre) throws Exception {
+        ProductoRequest request = new ProductoRequest(sku, nombre, "Descripcion", new BigDecimal("1000"), "CLP", CATEGORIA_ID);
+        mockMvc.perform(post("/api/productos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+    }
 }

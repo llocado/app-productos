@@ -23,7 +23,7 @@ docs {
   Lista productos de forma paginada (orden por nombre ascendente).
   Corre "01 - Crear Producto" primero para tener al menos un registro.
 
-  Query params opcionales: `pagina` (default 0) y `tamano` (default 20,
-  maximo 100). La respuesta viene envuelta:
+  Query params opcionales: `pagina` (default 0), `tamano` (default 20,
+  maximo 100) y `nombre` (busca por texto contenido en el nombre; ver "19 - Buscar Productos por nombre"). La respuesta viene envuelta:
   { "contenido": [...], "pagina": 0, "tamano": 20, "totalElementos": N, "totalPaginas": N }
 }

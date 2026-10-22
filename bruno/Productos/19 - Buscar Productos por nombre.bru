@@ -1,0 +1,40 @@
+meta {
+  name: 19 - Buscar Productos por nombre
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{baseUrl}}/api/productos?nombre=pizza&pagina=0&tamano=20
+  body: none
+  auth: none
+}
+
+params:query {
+  nombre: pizza
+  pagina: 0
+  tamano: 20
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("todos los resultados contienen el texto buscado", function() {
+    res.getBody().contenido.forEach(function(producto) {
+      expect(producto.nombre.toLowerCase()).to.contain("pizza");
+    });
+  });
+}
+
+docs {
+  Busca productos cuyo nombre CONTIENE el texto, sin distinguir mayusculas ("PIZ" encuentra "Pizza Margarita"),
+  ordenados por nombre y paginados igual que el listado. Cambia `nombre` por lo que quieras buscar.
+
+  - Sin resultados no es un error: 200 con `contenido: []` y `totalElementos: 0`.
+  - `%` y `_` se buscan como texto, no como comodines.
+  - El texto distingue tildes: "platano" NO encuentra "Plátano" (pendiente documentado).
+  - Maximo 100 caracteres (ver "20 - Buscar Productos - nombre demasiado largo").
+  - Este request va despues del 14 (que borra el producto): puede devolver una lista vacia y el test pasa igual.
+}
