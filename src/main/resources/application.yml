@@ -88,6 +88,9 @@ logging:
     # Este handler escribe ~90 lineas de stack trace por cada mensaje rechazado; el listener ya registra
     # una linea concisa con el eventId, y los fallos tras los reintentos los registra el MessageRecoverer propio.
     org.springframework.amqp.listener.ConditionalRejectingErrorHandler: ERROR
+    # Con mandatory + returns, RabbitTemplate avisa de cada mensaje devuelto (sin binding) una vez por segundo mientras el
+    # outbox reintenta; el PublicadorOutbox ya lo registra con eventType y eventId, con espaciado propio.
+    org.springframework.amqp.rabbit.core.RabbitTemplate: ERROR
     # Con la base caida, Hikari escribe un WARN con stack trace por cada reintento de conexion y por cada conexion
     # rota, Hibernate otro por cada SQL fallido y las transacciones otro ("excepcion sobrescrita por la de
     # rollback"): ~80 lineas cada uno. El fallo ya lo registran, en una linea, los manejadores propios.
