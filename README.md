@@ -1,5 +1,7 @@
 # app-productos (productos-service)
 
+[![Tests](https://github.com/llocado/app-productos/actions/workflows/tests.yml/badge.svg)](https://github.com/llocado/app-productos/actions/workflows/tests.yml)
+
 Catálogo del proyecto supermercado y **único dueño del stock**. Arquitectura hexagonal: casos de uso en `application/usecase`,
 puertos en `application/port`, adaptadores en `infrastructure/*`. El dominio (`Producto`, `Sku`, `Precio`...) vive en una biblioteca
 aparte, [`lib-domain-foods`](https://github.com/llocado/lib-domain-foods).
