@@ -1,6 +1,6 @@
 # Eventos de app-productos
 
-Contrato del bus de eventos (RabbitMQ) segun el ROADMAP del proyecto (seccion "Contrato de eventos"). Cada evento va en el envelope comun (`eventId`, `eventType`, `eventVersion`, `occurredAt`, `producer`, `correlationId`, `payload`). El `correlationId` es el id del checkout y se propaga desde `pago.aprobado`.
+Contrato del bus de eventos (RabbitMQ) segun el contrato comun del proyecto. Cada evento va en el envelope comun (`eventId`, `eventType`, `eventVersion`, `occurredAt`, `producer`, `correlationId`, `payload`). El `correlationId` es el id del checkout y se propaga desde `pago.aprobado`.
 
 ## Publica (productor)
 
@@ -24,4 +24,4 @@ Un `eventId` ya visto se descarta (tabla `eventos_procesados`): descontar dos ve
 ## Limitaciones conocidas
 
 - No hay reserva de stock: puede haber mas carritos que unidades hasta que se paga. Si al pagar ya no alcanza, el pedido queda `SIN_STOCK` (gestion manual, sin reembolso automatico: el dinero es simulado).
-- `eventos_procesados` y `eventos_salida` crecen sin limite (retencion pendiente, ver `docs/seguridad-pendiente.md`).
+- `eventos_procesados` y `eventos_salida` crecen sin limite (retencion pendiente, pendiente de cerrar antes de un despliegue real).
