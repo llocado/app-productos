@@ -11,7 +11,7 @@ de eventos y la demo de un comando están en el repo [`supermercado`](https://gi
 
 ## Qué hace
 
-- **Catálogo REST** (`/api/productos`): listar con paginación y búsqueda por nombre (sin distinguir mayúsculas ni tildes, con la extensión
+- **Catálogo REST** (`/api/productos`): la **lectura es pública** y **escribir exige rol `admin`** (token de Keycloak; sin token 401, rol `cliente` 403). Listar con paginación y búsqueda por nombre (sin distinguir mayúsculas ni tildes, con la extensión
   `unaccent` de Postgres), ver por id o por SKU, crear, actualizar y borrar.
 - **Stock**: se carga con `POST /api/productos/{id}/stock/ingresos` y se descuenta al consumir el evento `pago.aprobado`.
 - **Descripciones con IA** (`POST /api/productos/generar-descripcion`, Spring AI): desactivado a propósito, no hay API key configurada.
@@ -29,6 +29,8 @@ de eventos y la demo de un comando están en el repo [`supermercado`](https://gi
   (1 s, 2 s, 4 s) y luego DLQ.
 - **Cada servicio es dueño de su modelo**: nadie importa el dominio de otro servicio.
 - **Cambios de esquema solo con Liquibase**, nunca `ddl-auto: update`.
+- **Retención de eventos:** una tarea diaria borra `eventos_procesados` de más de 30 días y los `eventos_salida` ya publicados de más de 7 (los pendientes
+  jamás); plazos configurables (`purga.*`). Sin esto las tablas crecerían sin límite.
 
 Contrato de los eventos (JSON Schema): [`docs/events/`](docs/events/README.md).
 
@@ -59,6 +61,5 @@ en `bruno/` con una request por endpoint (repetibles: generan sus propios SKU y 
 
 ## Límites conocidos
 
-- Esta API **no exige autenticación todavía** (el catálogo es público; las escrituras deberían exigir rol `admin`). Es un riesgo conocido y
-  documentado, pendiente de cerrar antes de cualquier despliegue real.
-- `eventos_procesados` y `eventos_salida` crecen sin límite: falta una política de retención.
+- Keycloak de desarrollo y credenciales por defecto: ver [`supermercado/docs/riesgos-conocidos.md`](https://github.com/llocado/supermercado/blob/main/docs/riesgos-conocidos.md).
+- Sin reserva de stock: puede haber más carritos que unidades; si al pagar ya no alcanza, el pedido queda `SIN_STOCK`.

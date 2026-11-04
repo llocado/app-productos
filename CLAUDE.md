@@ -16,6 +16,10 @@ propósito: es interno y no se publica por ahora — nunca agregarlo a un commit
   Packages como repositorio Maven, pero el build tool es Gradle).
 - Postgres 16 (contenedor `foodstore-postgres`, puerto **5432**).
 - Liquibase para esquema.
+- Spring Security como OAuth2 Resource Server contra Keycloak (`infrastructure/security/SecurityConfig`): `GET` del catálogo público,
+  escribir exige rol `admin`. Las pruebas de escritura usan `jwt()` (spring-security-test); para probar a mano pide un token de `admin1`.
+- Retención de eventos: `PurgaEventosJob` diaria (`purga.*`): `eventos_procesados` 30 días, `eventos_salida` publicados 7 días.
+- `docker compose up -d` levanta Postgres **y** la app en una imagen (puerto 8080); para usar `bootRun`, solo `docker compose up -d postgres-db`.
 - RabbitMQ (vía `supermercado-infra`): **consume** `pago.aprobado` (cola `productos.pago-aprobado` + DLQ) para
   descontar el stock y **publica** `stock.descuento-rechazado` (exchange `productos.events`, con *outbox*) cuando
   no alcanza. Contrato en `docs/events/`.

@@ -24,4 +24,4 @@ Un `eventId` ya visto se descarta (tabla `eventos_procesados`): descontar dos ve
 ## Limitaciones conocidas
 
 - No hay reserva de stock: puede haber mas carritos que unidades hasta que se paga. Si al pagar ya no alcanza, el pedido queda `SIN_STOCK` (gestion manual, sin reembolso automatico: el dinero es simulado).
-- `eventos_procesados` y `eventos_salida` crecen sin limite (retencion pendiente, pendiente de cerrar antes de un despliegue real).
+- Retencion: una tarea diaria borra `eventos_procesados` de mas de 30 dias y los `eventos_salida` ya publicados de mas de 7 (los pendientes nunca); plazos en `purga.*`.
