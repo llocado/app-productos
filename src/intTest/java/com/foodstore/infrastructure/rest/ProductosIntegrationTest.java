@@ -21,6 +21,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -30,6 +35,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -52,6 +58,8 @@ import tools.jackson.databind.ObjectMapper;
 @AutoConfigureMockMvc
 @Testcontainers
 @Transactional
+// La seguridad real esta activa: estas pruebas actuan como un admin (la regla de acceso se prueba en SeguridadProductosTest).
+@MockitoBean(types = JwtDecoder.class)
 // Esta suite no levanta RabbitMQ: el listener no arranca y el puerto invalido garantiza que, pase lo que pase,
 // nunca se conecte al RabbitMQ de desarrollo (declararia colas ni consumiria eventos reales).
 @TestPropertySource(properties = {"spring.rabbitmq.listener.simple.auto-startup=false", "spring.rabbitmq.port=1"})
@@ -65,6 +73,11 @@ class ProductosIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    /** Ejecuta la peticion como un admin autenticado (el JWT se simula: no hace falta Keycloak). */
+    private ResultActions comoAdmin(MockHttpServletRequestBuilder peticion) throws Exception {
+        return mockMvc.perform(peticion.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin"))));
+    }
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -86,7 +99,7 @@ class ProductosIntegrationTest {
                 CATEGORIA_ID
         );
 
-        MvcResult result = mockMvc.perform(post("/api/productos")
+        MvcResult result = comoAdmin(post("/api/productos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -125,7 +138,7 @@ class ProductosIntegrationTest {
         Producto manzana = productoRepositoryPort.guardar(crearProducto("SKU-INT-101", "Manzana Fuji", "1500", "CLP"));
         Producto pera = productoRepositoryPort.guardar(crearProducto("SKU-INT-102", "Pera Williams", "1200", "CLP"));
 
-        MvcResult result = mockMvc.perform(get("/api/productos"))
+        MvcResult result = comoAdmin(get("/api/productos"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElementos").value(2))
                 .andExpect(jsonPath("$.pagina").value(0))
@@ -162,7 +175,7 @@ class ProductosIntegrationTest {
         Producto guardado = productoRepositoryPort.guardar(
                 crearProducto("SKU-INT-201", "Platano Cavendish", "900", "CLP"));
 
-        mockMvc.perform(get("/api/productos/sku/{sku}", "SKU-INT-201"))
+        comoAdmin(get("/api/productos/sku/{sku}", "SKU-INT-201"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(guardado.getId().getValor().toString()))
                 .andExpect(jsonPath("$.sku").value("SKU-INT-201"))
@@ -173,7 +186,7 @@ class ProductosIntegrationTest {
 
     @Test
     void obtenerPorSku_DeberiaRetornar404_CuandoElSkuNoExiste() throws Exception {
-        mockMvc.perform(get("/api/productos/sku/{sku}", "SKU-NO-EXISTE"))
+        comoAdmin(get("/api/productos/sku/{sku}", "SKU-NO-EXISTE"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.mensaje").exists());
     }
@@ -195,7 +208,7 @@ class ProductosIntegrationTest {
                 CATEGORIA_ID
         );
 
-        mockMvc.perform(put("/api/productos/{id}", id)
+        comoAdmin(put("/api/productos/{id}", id)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -221,7 +234,7 @@ class ProductosIntegrationTest {
                 CATEGORIA_ID
         );
 
-        mockMvc.perform(put("/api/productos/{id}", idInexistente)
+        comoAdmin(put("/api/productos/{id}", idInexistente)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
@@ -237,7 +250,7 @@ class ProductosIntegrationTest {
                 crearProducto("SKU-INT-401", "Pan Baguette", "1200", "CLP"));
         String id = guardado.getId().getValor().toString();
 
-        mockMvc.perform(delete("/api/productos/{id}", id))
+        comoAdmin(delete("/api/productos/{id}", id))
                 .andExpect(status().isNoContent());
 
         assertThat(productoRepositoryPort.buscarPorId(guardado.getId())).isEmpty();
@@ -247,7 +260,7 @@ class ProductosIntegrationTest {
     void eliminar_DeberiaRetornar404_CuandoElProductoNoExiste() throws Exception {
         String idInexistente = UUID.randomUUID().toString();
 
-        mockMvc.perform(delete("/api/productos/{id}", idInexistente))
+        comoAdmin(delete("/api/productos/{id}", idInexistente))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.mensaje").exists());
     }
@@ -269,37 +282,37 @@ class ProductosIntegrationTest {
     void ingresarStock_DeberiaSumarYPersistirElStock_EnPostgres() throws Exception {
         ProductoRequest request = new ProductoRequest(
                 "SKU-INT-STOCK", "Leche Entera", "1 litro", new BigDecimal("1100"), "CLP", CATEGORIA_ID);
-        MvcResult creado = mockMvc.perform(post("/api/productos")
+        MvcResult creado = comoAdmin(post("/api/productos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andReturn();
         ProductoResponse producto = objectMapper.readValue(creado.getResponse().getContentAsString(), ProductoResponse.class);
 
-        mockMvc.perform(post("/api/productos/{id}/stock/ingresos", producto.id())
+        comoAdmin(post("/api/productos/{id}/stock/ingresos", producto.id())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"unidades\": 25}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.stock").value(25));
-        mockMvc.perform(post("/api/productos/{id}/stock/ingresos", producto.id())
+        comoAdmin(post("/api/productos/{id}/stock/ingresos", producto.id())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"unidades\": 5}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.stock").value(30));
 
-        mockMvc.perform(get("/api/productos/{id}", producto.id()))
+        comoAdmin(get("/api/productos/{id}", producto.id()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.stock").value(30));
     }
 
     @Test
     void ingresarStock_DeberiaRetornar404_CuandoElProductoNoExiste() throws Exception {
-        mockMvc.perform(post("/api/productos/{id}/stock/ingresos", UUID.randomUUID())
+        comoAdmin(post("/api/productos/{id}/stock/ingresos", UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"unidades\": 5}"))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void ingresarStock_DeberiaRetornar400_CuandoLasUnidadesSonInvalidas() throws Exception {
-        mockMvc.perform(post("/api/productos/{id}/stock/ingresos", UUID.randomUUID())
+        comoAdmin(post("/api/productos/{id}/stock/ingresos", UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"unidades\": 0}"))
                 .andExpect(status().isBadRequest());
     }
@@ -308,18 +321,18 @@ class ProductosIntegrationTest {
     void ingresarStock_DeberiaRetornar400YNoCambiarElStock_CuandoLasUnidadesSonFraccionarias() throws Exception {
         ProductoRequest request = new ProductoRequest(
                 "SKU-INT-FRAC", "Arroz", "1 kg", new BigDecimal("1500"), "CLP", CATEGORIA_ID);
-        MvcResult creado = mockMvc.perform(post("/api/productos")
+        MvcResult creado = comoAdmin(post("/api/productos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andReturn();
         ProductoResponse producto = objectMapper.readValue(creado.getResponse().getContentAsString(), ProductoResponse.class);
 
-        mockMvc.perform(post("/api/productos/{id}/stock/ingresos", producto.id())
+        comoAdmin(post("/api/productos/{id}/stock/ingresos", producto.id())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"unidades\": 1.5}"))
                 .andExpect(status().isBadRequest());
 
-        mockMvc.perform(get("/api/productos/{id}", producto.id()))
+        comoAdmin(get("/api/productos/{id}", producto.id()))
                 .andExpect(jsonPath("$.stock").value(0));
     }
 
@@ -332,15 +345,15 @@ class ProductosIntegrationTest {
         crearProductoParaBusqueda("SKU-BUS-2", "Leche Descremada");
         crearProductoParaBusqueda("SKU-BUS-3", "Manzana Fuji");
 
-        mockMvc.perform(get("/api/productos").param("nombre", "LECH"))
+        comoAdmin(get("/api/productos").param("nombre", "LECH"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElementos").value(2))
                 .andExpect(jsonPath("$.contenido[0].nombre").value("Leche Descremada"))
                 .andExpect(jsonPath("$.contenido[1].nombre").value("Leche Entera"));
-        mockMvc.perform(get("/api/productos").param("nombre", "zana f"))
+        comoAdmin(get("/api/productos").param("nombre", "zana f"))
                 .andExpect(jsonPath("$.totalElementos").value(1))
                 .andExpect(jsonPath("$.contenido[0].sku").value("SKU-BUS-3"));
-        mockMvc.perform(get("/api/productos").param("nombre", "no-existe-nada"))
+        comoAdmin(get("/api/productos").param("nombre", "no-existe-nada"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElementos").value(0))
                 .andExpect(jsonPath("$.contenido").isEmpty());
@@ -352,10 +365,10 @@ class ProductosIntegrationTest {
         crearProductoParaBusqueda("SKU-LIT-2", "Oferta 50 unidades");
 
         // "%" suelto como comodin encontraria los dos; como texto literal solo el que lo trae escrito.
-        mockMvc.perform(get("/api/productos").param("nombre", "50%"))
+        comoAdmin(get("/api/productos").param("nombre", "50%"))
                 .andExpect(jsonPath("$.totalElementos").value(1))
                 .andExpect(jsonPath("$.contenido[0].sku").value("SKU-LIT-1"));
-        mockMvc.perform(get("/api/productos").param("nombre", "Oferta_50"))
+        comoAdmin(get("/api/productos").param("nombre", "Oferta_50"))
                 .andExpect(jsonPath("$.totalElementos").value(0));
     }
 
@@ -365,14 +378,14 @@ class ProductosIntegrationTest {
         crearProductoParaBusqueda("SKU-TIL-2", "Jamón Serrano");
         crearProductoParaBusqueda("SKU-TIL-3", "Cafe Molido");
 
-        mockMvc.perform(get("/api/productos").param("nombre", "platano"))
+        comoAdmin(get("/api/productos").param("nombre", "platano"))
                 .andExpect(jsonPath("$.totalElementos").value(1))
                 .andExpect(jsonPath("$.contenido[0].sku").value("SKU-TIL-1"));
-        mockMvc.perform(get("/api/productos").param("nombre", "JAMON"))
+        comoAdmin(get("/api/productos").param("nombre", "JAMON"))
                 .andExpect(jsonPath("$.totalElementos").value(1))
                 .andExpect(jsonPath("$.contenido[0].sku").value("SKU-TIL-2"));
         // Al reves: el usuario escribe la tilde y el nombre guardado no la lleva.
-        mockMvc.perform(get("/api/productos").param("nombre", "café"))
+        comoAdmin(get("/api/productos").param("nombre", "café"))
                 .andExpect(jsonPath("$.totalElementos").value(1))
                 .andExpect(jsonPath("$.contenido[0].sku").value("SKU-TIL-3"));
     }
@@ -382,7 +395,7 @@ class ProductosIntegrationTest {
         crearProductoParaBusqueda("SKU-BAR-1", "Ruta C:\\tmp");
         crearProductoParaBusqueda("SKU-BAR-2", "Ruta C tmp");
 
-        mockMvc.perform(get("/api/productos").param("nombre", "C:\\"))
+        comoAdmin(get("/api/productos").param("nombre", "C:\\"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElementos").value(1))
                 .andExpect(jsonPath("$.contenido[0].sku").value("SKU-BAR-1"));
@@ -392,14 +405,14 @@ class ProductosIntegrationTest {
     void listar_DeberiaListarTodo_CuandoElNombreVieneEnBlanco() throws Exception {
         crearProductoParaBusqueda("SKU-BLA-1", "Pan Molde");
 
-        mockMvc.perform(get("/api/productos").param("nombre", "  "))
+        comoAdmin(get("/api/productos").param("nombre", "  "))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElementos").value(1));
     }
 
     private void crearProductoParaBusqueda(String sku, String nombre) throws Exception {
         ProductoRequest request = new ProductoRequest(sku, nombre, "Descripcion", new BigDecimal("1000"), "CLP", CATEGORIA_ID);
-        mockMvc.perform(post("/api/productos")
+        comoAdmin(post("/api/productos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated());

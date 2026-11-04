@@ -1,7 +1,7 @@
 meta {
   name: 10 - Ingresar Stock - unidades invalidas
   type: http
-  seq: 10
+  seq: 12
 }
 
 post {
@@ -11,6 +11,7 @@ post {
 }
 
 headers {
+  Authorization: Bearer {{tokenAdmin}}
   Content-Type: application/json
 }
 
@@ -25,5 +26,6 @@ assert {
 }
 
 docs {
+  [Requiere token de admin: ver "00 - Obtener Token Admin".]
   Cero unidades (o un numero negativo, o mas de 100000, o un decimal como 1.5) se rechaza con 400 y no cambia el stock.
 }

@@ -1,7 +1,7 @@
 meta {
   name: 09 - Ingresar Stock
   type: http
-  seq: 9
+  seq: 11
 }
 
 post {
@@ -11,6 +11,7 @@ post {
 }
 
 headers {
+  Authorization: Bearer {{tokenAdmin}}
   Content-Type: application/json
 }
 
@@ -26,10 +27,10 @@ assert {
 }
 
 docs {
+  [Requiere token de admin: ver "00 - Obtener Token Admin".]
   Llegada de mercaderia: suma 40 unidades al stock del producto creado en "01 - Crear Producto" (nace con stock 0, y
   esta es la unica forma de que tenga). Cada llamada SUMA: correrla otra vez deja 80. Unidades validas: de 1 a 100000
   por ingreso.
 
-  Ojo: este servicio todavia no tiene autenticacion, asi que cualquiera con acceso al puerto puede cargar stock
-  (pendiente documentado en docs/seguridad-pendiente.md).
+  Solo el rol admin puede cargar stock (sin token: 401; rol cliente: 403).
 }

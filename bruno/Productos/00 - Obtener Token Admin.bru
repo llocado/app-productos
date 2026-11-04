@@ -1,0 +1,38 @@
+meta {
+  name: 00 - Obtener Token Admin
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{keycloakUrl}}/realms/supermercado/protocol/openid-connect/token
+  body: formUrlEncoded
+  auth: none
+}
+
+headers {
+  Content-Type: application/x-www-form-urlencoded
+}
+
+body:form-urlencoded {
+  client_id: supermercado-web
+  grant_type: password
+  username: admin1
+  password: admin1
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  if (res.body && res.body.access_token) {
+    bru.setVar("tokenAdmin", res.body.access_token);
+  }
+}
+
+docs {
+  Pide un access token a Keycloak (supermercado-infra) con el usuario de prueba admin1 (rol "admin") y lo guarda en
+  `tokenAdmin`. Hace falta para todas las requests que ESCRIBEN en el catalogo (crear, actualizar, eliminar, ingresar
+  stock, generar descripcion): leer es publico. Requiere supermercado-infra corriendo.
+}

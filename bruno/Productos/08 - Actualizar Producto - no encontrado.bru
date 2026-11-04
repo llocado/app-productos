@@ -1,7 +1,7 @@
 meta {
   name: 08 - Actualizar Producto - no encontrado
   type: http
-  seq: 8
+  seq: 10
 }
 
 put {
@@ -11,6 +11,7 @@ put {
 }
 
 headers {
+  Authorization: Bearer {{tokenAdmin}}
   Content-Type: application/json
 }
 
@@ -29,6 +30,7 @@ assert {
 }
 
 docs {
+  [Requiere token de admin: ver "00 - Obtener Token Admin".]
   Id que no existe en la base de datos, para verificar
   ProductoNoEncontradoException -> 404 Not Found en el PUT.
 }

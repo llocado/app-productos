@@ -32,6 +32,13 @@ spring:
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Realm de Keycloak levantado por supermercado-infra.
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/supermercado}
+
   # Generacion de descripciones de producto via Claude (Spring AI).
   # El valor por defecto de api-key es un placeholder invalido: permite que la
   # app y los tests levanten el contexto sin la variable de entorno seteada;

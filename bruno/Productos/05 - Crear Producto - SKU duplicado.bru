@@ -1,7 +1,7 @@
 meta {
   name: 05 - Crear Producto - SKU duplicado
   type: http
-  seq: 5
+  seq: 7
 }
 
 post {
@@ -11,6 +11,7 @@ post {
 }
 
 headers {
+  Authorization: Bearer {{tokenAdmin}}
   Content-Type: application/json
 }
 
@@ -30,6 +31,7 @@ assert {
 }
 
 docs {
+  [Requiere token de admin: ver "00 - Obtener Token Admin".]
   Corre "01 - Crear Producto" antes: reutiliza su sku (variable `skuUnico`)
   a proposito para disparar SkuDuplicadoException -> 409 Conflict.
 }

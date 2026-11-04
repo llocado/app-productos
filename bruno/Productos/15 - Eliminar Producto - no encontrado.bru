@@ -1,7 +1,7 @@
 meta {
   name: 15 - Eliminar Producto - no encontrado
   type: http
-  seq: 15
+  seq: 17
 }
 
 delete {
@@ -10,11 +10,16 @@ delete {
   auth: none
 }
 
+headers {
+  Authorization: Bearer {{tokenAdmin}}
+}
+
 assert {
   res.status: eq 404
 }
 
 docs {
+  [Requiere token de admin: ver "00 - Obtener Token Admin".]
   Id que no existe en la base de datos, para verificar
   ProductoNoEncontradoException -> 404 Not Found en el DELETE.
 }

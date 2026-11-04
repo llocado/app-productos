@@ -1,0 +1,36 @@
+meta {
+  name: 22 - Crear Producto - rol cliente (403)
+  type: http
+  seq: 24
+}
+
+post {
+  url: {{baseUrl}}/api/productos
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{tokenCliente}}
+}
+
+body:json {
+  {
+    "sku": "CLIENTE-1",
+    "nombre": "No deberia crearse",
+    "descripcion": "Rol cliente",
+    "precioMonto": 1000,
+    "moneda": "CLP",
+    "categoriaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  }
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  Un usuario autenticado pero con rol "cliente" no puede escribir en el catalogo: 403. Usa el token de
+  "00b - Obtener Token Cliente".
+}

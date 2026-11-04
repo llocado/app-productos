@@ -1,0 +1,35 @@
+meta {
+  name: 21 - Crear Producto - sin token (401)
+  type: http
+  seq: 23
+}
+
+post {
+  url: {{baseUrl}}/api/productos
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "sku": "SIN-TOKEN-1",
+    "nombre": "No deberia crearse",
+    "descripcion": "Sin token",
+    "precioMonto": 1000,
+    "moneda": "CLP",
+    "categoriaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  }
+}
+
+assert {
+  res.status: eq 401
+}
+
+docs {
+  Escribir en el catalogo exige token. Sin cabecera Authorization responde 401 y no se crea nada. Leer (GET) sigue siendo
+  publico: ver "02 - Listar Productos".
+}

@@ -1,7 +1,7 @@
 meta {
   name: 16 - Generar Descripcion
   type: http
-  seq: 16
+  seq: 18
 }
 
 post {
@@ -11,6 +11,7 @@ post {
 }
 
 headers {
+  Authorization: Bearer {{tokenAdmin}}
   Content-Type: application/json
 }
 
@@ -26,6 +27,7 @@ assert {
 }
 
 docs {
+  [Requiere token de admin: ver "00 - Obtener Token Admin".]
   Genera una descripcion de producto con Claude (Spring AI). Requiere la
   variable de entorno ANTHROPIC_API_KEY seteada con una key real de
   console.anthropic.com; sin ella, la app arranca igual (usa un placeholder)

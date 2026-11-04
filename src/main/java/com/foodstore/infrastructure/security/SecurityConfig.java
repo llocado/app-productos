@@ -1,0 +1,65 @@
+package com.foodstore.infrastructure.security;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.web.SecurityFilterChain;
+
+/**
+ * productos-service es un OAuth2 Resource Server: no muestra pantalla de login, solo valida los tokens que emite
+ * Keycloak (ver issuer-uri en application.yml).
+ *
+ * <p>Regla del catalogo: leerlo es publico (lo usan la tienda web y carrito-service, que lo consulta sin token);
+ * escribirlo (crear, actualizar, eliminar, ingresar stock, generar descripcion) exige el rol {@code admin}.
+ */
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) {
+        http
+                .cors(Customizer.withDefaults()) // usa el bean CorsConfigurationSource (ver CorsConfig)
+                .csrf(csrf -> csrf.disable()) // API stateless sin cookies de sesion: no aplica CSRF
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
+                        .requestMatchers("/api/productos/**").hasRole("admin")
+                        .anyRequest().denyAll())
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
+        return http.build();
+    }
+
+    /**
+     * Keycloak expone los roles del realm en el claim "realm_access.roles", que Spring Security no interpreta de
+     * forma nativa (es especifico de Keycloak, no un estandar OIDC). Este converter lo traduce al formato de
+     * autoridades que Spring entiende (prefijo "ROLE_").
+     */
+    private JwtAuthenticationConverter jwtAuthenticationConverter() {
+        var converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+            if (realmAccess == null || realmAccess.get("roles") == null) {
+                return List.<GrantedAuthority>of();
+            }
+            @SuppressWarnings("unchecked")
+            List<String> roles = (List<String>) realmAccess.get("roles");
+            Collection<GrantedAuthority> authorities = roles.stream()
+                    .<GrantedAuthority>map(rol -> new SimpleGrantedAuthority("ROLE_" + rol))
+                    .toList();
+            return authorities;
+        });
+        return converter;
+    }
+}

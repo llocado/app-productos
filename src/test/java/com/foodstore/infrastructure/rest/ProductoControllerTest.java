@@ -7,6 +7,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -42,6 +43,11 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import com.foodstore.infrastructure.security.SecurityConfig;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -56,13 +62,24 @@ import tools.jackson.databind.ObjectMapper;
  * por lo que no se toca la base de datos.
  */
 @WebMvcTest(ProductoController.class)
-@Import(ProductoDtoMapper.class)
+@Import({ProductoDtoMapper.class, SecurityConfig.class})
+// La seguridad real esta activa: estas pruebas son de presentacion, asi que actuan como un admin (la regla de acceso
+// se prueba en SeguridadProductosTest).
 class ProductoControllerTest {
 
     private static final String CATEGORIA_ID = "b6f3c1e0-2a3b-4c5d-8e9f-0a1b2c3d4e5f";
 
     @Autowired
     private MockMvc mockMvc;
+
+    /** Ejecuta la peticion como un admin autenticado (el JWT se simula: no hace falta Keycloak). */
+    private ResultActions comoAdmin(MockHttpServletRequestBuilder peticion) throws Exception {
+        return mockMvc.perform(peticion.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_admin"))));
+    }
+
+    // El filtro de seguridad necesita un JwtDecoder; no se usa (el admin es simulado), asi no hace falta Keycloak.
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -103,7 +120,7 @@ class ProductoControllerTest {
 
         when(crearProductoUseCase.execute(any(ProductoRequest.class))).thenReturn(creado);
 
-        mockMvc.perform(post("/api/productos")
+        comoAdmin(post("/api/productos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -132,7 +149,7 @@ class ProductoControllerTest {
                 CATEGORIA_ID
         );
 
-        mockMvc.perform(post("/api/productos")
+        comoAdmin(post("/api/productos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestInvalido)))
                 .andExpect(status().isBadRequest());
@@ -146,7 +163,7 @@ class ProductoControllerTest {
         for (String skuInvalido : new String[] {"A".repeat(21), "SKU_001", "AB", "-ABC"}) {
             ProductoRequest request = new ProductoRequest(skuInvalido, "Manzana", null, new BigDecimal("1000"), "CLP", CATEGORIA_ID);
 
-            mockMvc.perform(post("/api/productos")
+            comoAdmin(post("/api/productos")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest());
@@ -161,7 +178,7 @@ class ProductoControllerTest {
         for (String sku : new String[] {"ABC", "A".repeat(20)}) {
             ProductoRequest request = new ProductoRequest(sku, "Manzana", null, new BigDecimal("1000"), "CLP", CATEGORIA_ID);
 
-            mockMvc.perform(post("/api/productos")
+            comoAdmin(post("/api/productos")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isCreated());
@@ -174,7 +191,7 @@ class ProductoControllerTest {
         ProductoRequest categoriaInvalida = new ProductoRequest("SKU-001", "Manzana", null, new BigDecimal("1000"), "CLP", "no-es-un-uuid");
 
         for (ProductoRequest request : new ProductoRequest[] {nombreLargo, categoriaInvalida}) {
-            mockMvc.perform(post("/api/productos")
+            comoAdmin(post("/api/productos")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest());
@@ -189,7 +206,7 @@ class ProductoControllerTest {
 
         when(listarProductosUseCase.execute(any(CriterioPaginacion.class), any())).thenReturn(pagina);
 
-        mockMvc.perform(get("/api/productos"))
+        comoAdmin(get("/api/productos"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.contenido", hasSize(1)))
                 .andExpect(jsonPath("$.contenido[0].sku").value("SKU-001"))
@@ -203,7 +220,7 @@ class ProductoControllerTest {
 
     @Test
     void listar_DeberiaRetornar400_CuandoElTamanoExcedeElMaximoPermitido() throws Exception {
-        mockMvc.perform(get("/api/productos").param("tamano", "101"))
+        comoAdmin(get("/api/productos").param("tamano", "101"))
                 .andExpect(status().isBadRequest());
 
         verify(listarProductosUseCase, never()).execute(any(CriterioPaginacion.class), any());
@@ -214,7 +231,7 @@ class ProductoControllerTest {
         Pagina<Producto> pagina = Pagina.de(List.of(crearProducto()), 0, 20, 1);
         when(listarProductosUseCase.execute(any(CriterioPaginacion.class), eq("manz"))).thenReturn(pagina);
 
-        mockMvc.perform(get("/api/productos").param("nombre", "manz"))
+        comoAdmin(get("/api/productos").param("nombre", "manz"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.contenido", hasSize(1)));
 
@@ -225,9 +242,9 @@ class ProductoControllerTest {
     void listar_DeberiaAceptarUnNombreDeExactamente100Caracteres_YRechazarUnoDe101() throws Exception {
         when(listarProductosUseCase.execute(any(CriterioPaginacion.class), any())).thenReturn(Pagina.de(List.of(), 0, 20, 0));
 
-        mockMvc.perform(get("/api/productos").param("nombre", "a".repeat(100)))
+        comoAdmin(get("/api/productos").param("nombre", "a".repeat(100)))
                 .andExpect(status().isOk());
-        mockMvc.perform(get("/api/productos").param("nombre", "a".repeat(101)))
+        comoAdmin(get("/api/productos").param("nombre", "a".repeat(101)))
                 .andExpect(status().isBadRequest());
 
         verify(listarProductosUseCase).execute(any(CriterioPaginacion.class), eq("a".repeat(100)));
@@ -241,7 +258,7 @@ class ProductoControllerTest {
 
         when(obtenerProductoUseCase.execute(eq(producto.getId()))).thenReturn(producto);
 
-        mockMvc.perform(get("/api/productos/{id}", id))
+        comoAdmin(get("/api/productos/{id}", id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id))
                 .andExpect(jsonPath("$.sku").value("SKU-001"))
@@ -258,7 +275,7 @@ class ProductoControllerTest {
         when(obtenerProductoUseCase.execute(any(ProductoId.class)))
                 .thenThrow(new ProductoNoEncontradoException(mensaje));
 
-        mockMvc.perform(get("/api/productos/{id}", idInexistente))
+        comoAdmin(get("/api/productos/{id}", idInexistente))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.mensaje").value(mensaje));
     }
@@ -278,7 +295,7 @@ class ProductoControllerTest {
         when(actualizarProductoUseCase.execute(eq(producto.getId()), any(ProductoUpdateRequest.class)))
                 .thenReturn(producto);
 
-        mockMvc.perform(put("/api/productos/{id}", id)
+        comoAdmin(put("/api/productos/{id}", id)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -298,7 +315,7 @@ class ProductoControllerTest {
                 CATEGORIA_ID
         );
 
-        mockMvc.perform(put("/api/productos/{id}", id)
+        comoAdmin(put("/api/productos/{id}", id)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestInvalido)))
                 .andExpect(status().isBadRequest());
@@ -321,7 +338,7 @@ class ProductoControllerTest {
         when(actualizarProductoUseCase.execute(any(ProductoId.class), any(ProductoUpdateRequest.class)))
                 .thenThrow(new ProductoNoEncontradoException(mensaje));
 
-        mockMvc.perform(put("/api/productos/{id}", idInexistente)
+        comoAdmin(put("/api/productos/{id}", idInexistente)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
@@ -332,7 +349,7 @@ class ProductoControllerTest {
     void eliminar_DeberiaRetornar204_CuandoElProductoExiste() throws Exception {
         String id = UUID.randomUUID().toString();
 
-        mockMvc.perform(delete("/api/productos/{id}", id))
+        comoAdmin(delete("/api/productos/{id}", id))
                 .andExpect(status().isNoContent());
 
         verify(eliminarProductoUseCase).execute(eq(ProductoId.de(id)));
@@ -346,7 +363,7 @@ class ProductoControllerTest {
         doThrow(new ProductoNoEncontradoException(mensaje))
                 .when(eliminarProductoUseCase).execute(any(ProductoId.class));
 
-        mockMvc.perform(delete("/api/productos/{id}", idInexistente))
+        comoAdmin(delete("/api/productos/{id}", idInexistente))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.mensaje").value(mensaje));
     }
@@ -358,7 +375,7 @@ class ProductoControllerTest {
         when(generarDescripcionProductoUseCase.execute("Manzana Fuji", "Frutas"))
                 .thenReturn("Manzana fresca y crujiente, ideal para el dia a dia.");
 
-        mockMvc.perform(post("/api/productos/generar-descripcion")
+        comoAdmin(post("/api/productos/generar-descripcion")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -371,7 +388,7 @@ class ProductoControllerTest {
     void generarDescripcion_DeberiaRetornar400_CuandoElNombreEstaVacio() throws Exception {
         GenerarDescripcionRequest requestInvalido = new GenerarDescripcionRequest("", "Frutas");
 
-        mockMvc.perform(post("/api/productos/generar-descripcion")
+        comoAdmin(post("/api/productos/generar-descripcion")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestInvalido)))
                 .andExpect(status().isBadRequest());
@@ -385,7 +402,7 @@ class ProductoControllerTest {
         producto.aumentarStock(40);
         when(ingresarStockUseCase.execute(eq(producto.getId()), eq(40))).thenReturn(producto);
 
-        mockMvc.perform(post("/api/productos/{id}/stock/ingresos", producto.getId().getValor())
+        comoAdmin(post("/api/productos/{id}/stock/ingresos", producto.getId().getValor())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new StockIngresoRequest(40))))
                 .andExpect(status().isOk())
@@ -396,7 +413,7 @@ class ProductoControllerTest {
     void ingresarStock_DeberiaRetornar400_CuandoLasUnidadesSonCeroNegativasOExcedenElTope() throws Exception {
         UUID id = UUID.randomUUID();
         for (int unidades : new int[] {0, -5, 100001}) {
-            mockMvc.perform(post("/api/productos/{id}/stock/ingresos", id)
+            comoAdmin(post("/api/productos/{id}/stock/ingresos", id)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(new StockIngresoRequest(unidades))))
                     .andExpect(status().isBadRequest());
@@ -410,7 +427,7 @@ class ProductoControllerTest {
         when(ingresarStockUseCase.execute(any(ProductoId.class), org.mockito.ArgumentMatchers.anyInt())).thenReturn(producto);
 
         for (int unidades : new int[] {1, 100000}) {
-            mockMvc.perform(post("/api/productos/{id}/stock/ingresos", producto.getId().getValor())
+            comoAdmin(post("/api/productos/{id}/stock/ingresos", producto.getId().getValor())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(new StockIngresoRequest(unidades))))
                     .andExpect(status().isOk());
@@ -422,7 +439,7 @@ class ProductoControllerTest {
         when(ingresarStockUseCase.execute(any(ProductoId.class), org.mockito.ArgumentMatchers.anyInt()))
                 .thenThrow(new ProductoNoEncontradoException("Producto no encontrado: x"));
 
-        mockMvc.perform(post("/api/productos/{id}/stock/ingresos", UUID.randomUUID())
+        comoAdmin(post("/api/productos/{id}/stock/ingresos", UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new StockIngresoRequest(5))))
                 .andExpect(status().isNotFound());
@@ -433,7 +450,7 @@ class ProductoControllerTest {
         when(ingresarStockUseCase.execute(any(ProductoId.class), org.mockito.ArgumentMatchers.anyInt()))
                 .thenThrow(new ObjectOptimisticLockingFailureException("ProductoEntity", UUID.randomUUID()));
 
-        mockMvc.perform(post("/api/productos/{id}/stock/ingresos", UUID.randomUUID())
+        comoAdmin(post("/api/productos/{id}/stock/ingresos", UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new StockIngresoRequest(5))))
                 .andExpect(status().isConflict())

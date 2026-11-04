@@ -17,6 +17,8 @@ import com.foodstore.infrastructure.rest.dto.ProductoDtoMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import com.foodstore.infrastructure.security.SecurityConfig;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -24,7 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 /** El navegador pregunta con OPTIONS (preflight) antes de leer: solo el origen configurado y solo lectura. */
 @WebMvcTest(ProductoController.class)
-@Import({ProductoDtoMapper.class, CorsConfig.class})
+@Import({ProductoDtoMapper.class, CorsConfig.class, SecurityConfig.class})
 @TestPropertySource(properties = "app.cors.allowed-origins=http://localhost:5173")
 class CorsConfigTest {
 
@@ -33,6 +35,9 @@ class CorsConfigTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
 
     @MockitoBean
     private CrearProductoUseCase crearProductoUseCase;

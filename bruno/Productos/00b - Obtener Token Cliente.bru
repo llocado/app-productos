@@ -1,0 +1,37 @@
+meta {
+  name: 00b - Obtener Token Cliente
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{keycloakUrl}}/realms/supermercado/protocol/openid-connect/token
+  body: formUrlEncoded
+  auth: none
+}
+
+headers {
+  Content-Type: application/x-www-form-urlencoded
+}
+
+body:form-urlencoded {
+  client_id: supermercado-web
+  grant_type: password
+  username: cliente1
+  password: cliente1
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  if (res.body && res.body.access_token) {
+    bru.setVar("tokenCliente", res.body.access_token);
+  }
+}
+
+docs {
+  Token del usuario cliente1 (rol "cliente"), guardado en `tokenCliente`. Se usa para comprobar que un cliente NO puede
+  escribir en el catalogo (403). Requiere supermercado-infra corriendo.
+}

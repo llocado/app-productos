@@ -1,7 +1,7 @@
 meta {
   name: 18 - Crear Producto - sku invalido
   type: http
-  seq: 18
+  seq: 20
 }
 
 post {
@@ -11,6 +11,7 @@ post {
 }
 
 headers {
+  Authorization: Bearer {{tokenAdmin}}
   Content-Type: application/json
 }
 
@@ -29,6 +30,7 @@ assert {
 }
 
 docs {
+  [Requiere token de admin: ver "00 - Obtener Token Admin".]
   SKU de 26 caracteres (el maximo es 20; tambien se rechazan otros caracteres que no sean letras, digitos o guiones, y
   menos de 3). Antes devolvia 500 porque la regla solo estaba en el dominio; ahora ProductoRequest la valida y responde
   400. No crea nada, asi que no necesita limpieza. Mismo criterio: nombre de mas de 150 caracteres y categoriaId que no

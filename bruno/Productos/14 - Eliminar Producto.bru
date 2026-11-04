@@ -1,7 +1,7 @@
 meta {
   name: 14 - Eliminar Producto
   type: http
-  seq: 14
+  seq: 16
 }
 
 delete {
@@ -10,11 +10,16 @@ delete {
   auth: none
 }
 
+headers {
+  Authorization: Bearer {{tokenAdmin}}
+}
+
 assert {
   res.status: eq 204
 }
 
 docs {
+  [Requiere token de admin: ver "00 - Obtener Token Admin".]
   Usa la variable `idProducto`, seteada automaticamente por
   "01 - Crear Producto" al correrla. Corre esta request al final: deja el
   producto de prueba eliminado.

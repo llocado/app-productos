@@ -1,7 +1,7 @@
 meta {
   name: 07 - Actualizar Producto
   type: http
-  seq: 7
+  seq: 9
 }
 
 put {
@@ -11,6 +11,7 @@ put {
 }
 
 headers {
+  Authorization: Bearer {{tokenAdmin}}
   Content-Type: application/json
 }
 
@@ -29,6 +30,7 @@ assert {
 }
 
 docs {
+  [Requiere token de admin: ver "00 - Obtener Token Admin".]
   Usa la variable `idProducto`, seteada automaticamente por
   "01 - Crear Producto" al correrla. El sku no se puede modificar
   (el dominio no expone una operacion para eso); solo nombre, descripcion,

@@ -1,7 +1,7 @@
 meta {
   name: 11 - Ingresar Stock - producto no encontrado
   type: http
-  seq: 11
+  seq: 13
 }
 
 post {
@@ -11,6 +11,7 @@ post {
 }
 
 headers {
+  Authorization: Bearer {{tokenAdmin}}
   Content-Type: application/json
 }
 
@@ -25,5 +26,6 @@ assert {
 }
 
 docs {
+  [Requiere token de admin: ver "00 - Obtener Token Admin".]
   Un id que no existe responde 404, igual que el resto de los endpoints por id.
 }
