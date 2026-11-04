@@ -7,3 +7,5 @@ databaseChangeLog:
       file: db/changelog/changes/003-crear-tablas-eventos.yaml
   - include:
       file: db/changelog/changes/004-habilitar-extension-unaccent.yaml
+  - include:
+      file: db/changelog/changes/005-indice-eventos-procesados-por-fecha.yaml

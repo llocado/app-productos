@@ -5,9 +5,9 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-/** Activa el publicador del outbox (@Scheduled) y sus propiedades (productos.outbox.*). */
+/** Activa las tareas programadas (publicador del outbox y purga de eventos) y sus propiedades (productos.outbox.*, purga.*). */
 @Configuration
 @EnableScheduling
-@EnableConfigurationProperties(OutboxProperties.class)
+@EnableConfigurationProperties({OutboxProperties.class, PurgaProperties.class})
 public class MensajeriaConfig {
 }

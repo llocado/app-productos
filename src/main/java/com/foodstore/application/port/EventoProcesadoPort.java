@@ -1,5 +1,6 @@
 package com.foodstore.application.port;
 
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -12,4 +13,10 @@ public interface EventoProcesadoPort {
     boolean yaFueProcesado(UUID eventId);
 
     void marcarComoProcesado(UUID eventId);
+
+    /**
+     * Retencion: borra hasta {@code lote} registros anotados antes de {@code limite} y devuelve cuantos borro. Una
+     * transaccion por llamada, para no mantener bloqueos largos con tablas grandes.
+     */
+    int eliminarProcesadosAnterioresA(Instant limite, int lote);
 }

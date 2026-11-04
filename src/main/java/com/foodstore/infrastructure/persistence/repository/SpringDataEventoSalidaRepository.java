@@ -1,9 +1,11 @@
 package com.foodstore.infrastructure.persistence.repository;
 
 import com.foodstore.infrastructure.persistence.entity.EventoSalidaEntity;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -18,4 +20,11 @@ public interface SpringDataEventoSalidaRepository extends JpaRepository<EventoSa
     List<EventoSalidaEntity> bloquearPendientes(@Param("lote") int lote);
 
     long countByPublicadoEnIsNull();
+
+    /** Solo eventos ya publicados (publicado_en no nulo), en lotes. Los pendientes nunca se borran. */
+    @Modifying
+    @Query(value = "delete from eventos_salida where id in "
+            + "(select id from eventos_salida where publicado_en is not null and publicado_en < :limite limit :lote)",
+            nativeQuery = true)
+    int eliminarPublicadosAnterioresA(@Param("limite") Instant limite, @Param("lote") int lote);
 }

@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -49,5 +50,11 @@ public class EventoSalidaAdapter implements EventoSalidaPort {
         entity.setCreadoEn(ahora);
         entity.setIntentos(0);
         springDataEventoSalidaRepository.saveAndFlush(entity);
+    }
+
+    @Override
+    @Transactional
+    public int eliminarPublicadosAnterioresA(Instant limite, int lote) {
+        return springDataEventoSalidaRepository.eliminarPublicadosAnterioresA(limite, lote);
     }
 }
